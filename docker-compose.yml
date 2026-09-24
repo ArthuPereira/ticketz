@@ -1,0 +1,58 @@
+name: cloud-app
+
+services:
+  # RDS e ElastiCache sobem containers reais (Postgres / Redis) via docker.sock.
+  ministack:
+    image: ministackorg/ministack:latest
+    container_name: ministack
+    ports:
+      - "4566:4566"
+    environment:
+      # Host que sua aplicação usa para alcançar o emulador e os bancos.
+      # Se a app rodar FORA do Docker (na sua máquina), deixe localhost.
+      MINISTACK_REGION: ${AWS_REGION:-us-east-1}
+      # Faz o RDS anunciar host:porta publicada (acessível da sua máquina),
+      # em vez do IP interno da rede Docker.
+      MINISTACK_HOST: ${MINISTACK_HOST:-localhost}
+      MINISTACK_RDS_PUBLIC_ENDPOINT: "1"
+    volumes:
+      # nececessário para o MiniStack criar os containers de Postgres/Redis.
+      - /var/run/docker.sock:/var/run/docker.sock
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:4566/_ministack/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+
+  # chama com: docker compose run --rm terraform init
+  terraform:
+    image: hashicorp/terraform:1.10
+    profiles: ["tools"]
+    working_dir: /workspace
+    volumes:
+      - ./src/infra/local:/workspace
+    environment:
+      TF_VAR_aws_endpoint: http://ministack:4566
+      TF_VAR_aws_region: ${AWS_REGION:-us-east-1}
+      TF_VAR_db_name: ${DB_NAME:-appdb}
+      TF_VAR_db_username: ${DB_USER:-appuser}
+      TF_VAR_db_password: ${DB_PASSWORD:-app_password_local}
+    depends_on:
+      ministack:
+        condition: service_healthy
+  
+  aws:
+    image: amazon/aws-cli:latest
+    profiles: ["tools"]
+    working_dir: /work
+    volumes:
+      - ./:/work
+    environment:
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_DEFAULT_REGION: ${AWS_REGION:-us-east-1}
+      AWS_ENDPOINT_URL: http://ministack:4566
+    depends_on:
+      ministack:
+        condition: service_healthy
