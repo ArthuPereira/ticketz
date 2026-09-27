@@ -14,3 +14,14 @@ override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
+
+# Ambiente Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+.python-version
+.venv/
+.uv/
