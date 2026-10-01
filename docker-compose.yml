@@ -54,7 +54,7 @@ services:
     profiles: ["tools"]
     working_dir: /workspace
     volumes:
-      - ./src/infra/local:/workspace
+      - ./infra:/workspace
     environment:
       TF_VAR_aws_endpoint: http://ministack:4566
       TF_VAR_aws_region: ${AWS_REGION:-us-east-1}
