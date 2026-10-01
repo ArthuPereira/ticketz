@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
-from core.settings import settings
+from src.core.settings import settings
 
 # motor de conexão assíncrona que consome a property gerada pelo config.py
 engine = create_async_engine(
