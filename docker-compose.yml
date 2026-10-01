@@ -1,29 +1,52 @@
 name: cloud-app
 
 services:
-  # RDS e ElastiCache sobem containers reais (Postgres / Redis) via docker.sock.
   ministack:
     image: ministackorg/ministack:latest
     container_name: ministack
     ports:
       - "4566:4566"
     environment:
-      # Host que sua aplicação usa para alcançar o emulador e os bancos.
-      # Se a app rodar FORA do Docker (na sua máquina), deixe localhost.
       MINISTACK_REGION: ${AWS_REGION:-us-east-1}
-      # Faz o RDS anunciar host:porta publicada (acessível da sua máquina),
-      # em vez do IP interno da rede Docker.
       MINISTACK_HOST: ${MINISTACK_HOST:-localhost}
-      MINISTACK_RDS_PUBLIC_ENDPOINT: "1"
-    volumes:
-      # nececessário para o MiniStack criar os containers de Postgres/Redis.
-      - /var/run/docker.sock:/var/run/docker.sock
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:4566/_ministack/health')"]
       interval: 5s
       timeout: 3s
       retries: 12
       start_period: 5s
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    restart: unless-stopped
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    environment:
+      POSTGRES_DB: ${DB_NAME:-appdb}
+      POSTGRES_USER: ${DB_USER:-appuser}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-app_password_local}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-appuser} -d ${DB_NAME:-appdb}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
+    ports:
+      - "${CACHE_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   # chama com: docker compose run --rm terraform init
   terraform:
@@ -56,3 +79,7 @@ services:
     depends_on:
       ministack:
         condition: service_healthy
+
+volumes:
+  postgres_data:
+  redis_data:
