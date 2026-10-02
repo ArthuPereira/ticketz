@@ -26,6 +26,12 @@ class Settings(BaseSettings):
     AWS_SECRET_ACCESS_KEY: str = "test"
     AWS_ENDPOINT_URL: Optional[str] = None 
 
+    # Auth & JWT
+    SECRET_KEY: str = "ticketz-super-secret-key-change-in-production-min-32-chars"
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 480  # 8 horas (480 minutos)
+    ALLOW_ORGANIZER_SIGNUP: bool = True 
+
     model_config = SettingsConfigDict(
         env_file=".env",
         extra="ignore"
