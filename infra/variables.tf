@@ -12,7 +12,7 @@ variable "aws_region" {
 variable "project" {
   description = "Prefixo usado nos nomes dos recursos"
   type        = string
-  default     = "cloudapp"
+  default     = "ticketz"
 }
 
 variable "db_name" {

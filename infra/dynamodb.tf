@@ -1,13 +1,19 @@
 # Log das ações de CRUD. Cada item guarda:
-#   log_id (chave), action (CREATE/READ/UPDATE/DELETE), data (dados manipulados), timestamp
-# Só a chave precisa ser declarada; os demais atributos são livres no DynamoDB.
+#   entidade (PK: evento#12), sk (SK: 2026-10-03...#uuid), acao, usuario_id, dados, timestamp
 resource "aws_dynamodb_table" "action_logs" {
   name         = "${var.project}-action-logs"
   billing_mode = "PAY_PER_REQUEST"
-  hash_key     = "log_id"
+  hash_key     = "entidade"
+  range_key    = "sk"
 
   attribute {
-    name = "log_id"
+    name = "entidade"
+    type = "S"
+  }
+
+  attribute {
+    name = "sk"
     type = "S"
   }
 }
+
