@@ -4,13 +4,12 @@ output "s3_bucket" {
   value = aws_s3_bucket.files.bucket
 }
 
-
 output "sns_topic_arn" {
-  value = aws_sns_topic.file_uploaded.arn
+  value = aws_sns_topic.compra.arn
 }
 
 output "sqs_queue_url" {
-  value = aws_sqs_queue.processing.url
+  value = aws_sqs_queue.fila.url
 }
 
 output "dynamodb_table" {
