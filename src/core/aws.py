@@ -48,3 +48,10 @@ def get_sns_client():
     """Retorna cliente SNS."""
     kwargs = _get_common_kwargs()
     return boto3.client("sns", **kwargs)
+
+
+@lru_cache
+def get_sqs_client():
+    """Retorna cliente SQS."""
+    kwargs = _get_common_kwargs()
+    return boto3.client("sqs", **kwargs)

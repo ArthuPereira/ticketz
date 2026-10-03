@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     # Serviços AWS
     SNS_TOPIC_ARN: str
     SQS_QUEUE_URL: str
+    SQS_MAX_RECEIVE_COUNT: int = 3
+    WORKER_DELAY_SECONDS: float = 0.0
     S3_BUCKET: str = "ticketz-files-local"
     S3_BUCKET_BANNERS: Optional[str] = None
     S3_BUCKET_TICKETS: Optional[str] = None

@@ -50,7 +50,7 @@ async def upload_banner(evento_id: int, arquivo: UploadFile) -> str:
     conteudo = await arquivo.read(MAX_FILE_SIZE + 1)
     if len(conteudo) > MAX_FILE_SIZE:
         raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
             detail="Arquivo muito grande. O limite máximo permitido é de 5MB.",
         )
 
@@ -103,6 +103,42 @@ async def upload_banner(evento_id: int, arquivo: UploadFile) -> str:
 
     await asyncio.to_thread(_upload)
     return chave
+
+
+def put_ticket_pdf(key: str, content: bytes) -> None:
+    """Envia o arquivo PDF do ingresso para o S3 de forma síncrona (destinado ao uso com asyncio.to_thread)."""
+    s3 = get_s3_client()
+    s3.put_object(
+        Bucket=settings.s3_bucket_tickets,
+        Key=key,
+        Body=content,
+        ContentType="application/pdf",
+    )
+
+
+def gerar_presigned_download_url(
+    key: Optional[str],
+    ingresso_id: int,
+    expires_in: int = 300,
+) -> Optional[str]:
+    """Gera presigned URL de download com Content-Disposition attachment e expiração padrão de 5 minutos."""
+    if not key:
+        return None
+    try:
+        s3 = get_s3_client()
+        return s3.generate_presigned_url(
+            "get_object",
+            Params={
+                "Bucket": settings.s3_bucket_tickets,
+                "Key": key,
+                "ResponseContentType": "application/pdf",
+                "ResponseContentDisposition": f'attachment; filename="ingresso-{ingresso_id}.pdf"',
+            },
+            ExpiresIn=expires_in,
+        )
+    except Exception as e:
+        logger.error("Erro ao gerar presigned URL de download para ingresso %s: %s", ingresso_id, e)
+        return None
 
 
 async def delete_object(key: Optional[str]) -> None:
