@@ -16,6 +16,7 @@ from src.core.security import (
     verify_password,
 )
 from src.core.settings import settings
+from src.core.stubs import registrar_action_log
 
 router = APIRouter(
     prefix="/auth",
@@ -126,8 +127,14 @@ async def register(
             detail="E-mail já cadastrado",
         )
 
-    # [Etapa 5 - Action Log]: Ponto de integração para registrar log de auditoria
-    # CREATE / usuario / {novo_usuario.id} com dados: {"email": novo_usuario.email, "papel": novo_usuario.papel}
+    # Log de auditoria no DynamoDB
+    await registrar_action_log(
+        action="CREATE_USER",
+        resource="usuario",
+        resource_id=novo_usuario.id,
+        data={"email": novo_usuario.email, "papel": novo_usuario.papel},
+        usuario_id=novo_usuario.id,
+    )
 
     return novo_usuario
 

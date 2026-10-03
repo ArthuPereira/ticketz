@@ -12,6 +12,27 @@ from src.core.security import decode_access_token
 
 # Permite que o Swagger UI use o botão Authorize e envie Authorization: Bearer <token>
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
+
+
+async def get_current_user_optional(
+    token: Annotated[str | None, Depends(oauth2_scheme_optional)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> Usuario | None:
+    """Extrai o usuário autenticado caso o token Bearer seja enviado, sem exigir autenticação."""
+    if not token:
+        return None
+    try:
+        payload = decode_access_token(token)
+        user_id_str: str | None = payload.get("sub")
+        if not user_id_str:
+            return None
+        user_id = int(user_id_str)
+        stmt = select(Usuario).where(Usuario.id == user_id)
+        result = await db.execute(stmt)
+        return result.scalar_one_or_none()
+    except Exception:
+        return None
 
 
 async def get_current_user(

@@ -16,8 +16,10 @@ class Settings(BaseSettings):
     # Serviços AWS
     SNS_TOPIC_ARN: str
     SQS_QUEUE_URL: str
-    S3_BUCKET: str
-    DYNAMODB_TABLE: str
+    S3_BUCKET: str = "ticketz-files-local"
+    S3_BUCKET_BANNERS: Optional[str] = None
+    S3_BUCKET_TICKETS: Optional[str] = None
+    DYNAMODB_TABLE: str = "ticketz-action-logs"
 
     # Configurações AWS 
     AWS_REGION: str = "us-east-1"
@@ -44,5 +46,13 @@ class Settings(BaseSettings):
     @property
     def redis_url(self) -> str:
         return f"redis://{self.CACHE_HOST}:{self.CACHE_PORT}/0"
+
+    @property
+    def s3_bucket_banners(self) -> str:
+        return self.S3_BUCKET_BANNERS or self.S3_BUCKET
+
+    @property
+    def s3_bucket_tickets(self) -> str:
+        return self.S3_BUCKET_TICKETS or self.S3_BUCKET
     
 settings = Settings()

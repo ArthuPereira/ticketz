@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Any, Optional
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator
 
 
@@ -44,12 +44,20 @@ class EventoUpdate(BaseModel):
         return v
 
 
+class MeuIngressoResumo(BaseModel):
+    id: int
+    status: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 # schema para serializar a resposta (GET, POST, PUT)
 class EventoResponse(EventoBase):
     id: int
     organizador_id: int
     ingressos_disponiveis: int
     banner_url: Optional[str] = None  # Retorna null até a Etapa 5
+    meu_ingresso: Optional[MeuIngressoResumo] = None  # null ou {id, status} se autenticado
     ativo: bool
     criado_em: datetime
     atualizado_em: datetime
@@ -63,3 +71,17 @@ class EventoPagina(BaseModel):
     total: int
     limit: int
     offset: int
+
+
+class ActionLogItem(BaseModel):
+    entidade: str
+    sk: str
+    acao: str
+    usuario_id: Optional[int] = None
+    dados: Optional[dict[str, Any]] = None
+    timestamp: str
+
+
+class ActionLogPagina(BaseModel):
+    items: list[ActionLogItem]
+    cursor: Optional[str] = None
