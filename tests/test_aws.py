@@ -169,7 +169,7 @@ async def test_banner_arquivo_maior_que_5mb_retorna_413():
             files={"arquivo": ("enorme.png", payload_grande, "image/png")},
             headers={"Authorization": f"Bearer {token}"},
         )
-        assert res.status_code == status.HTTP_413_REQUEST_ENTITY_TOO_LARGE
+        assert res.status_code == status.HTTP_413_CONTENT_TOO_LARGE
 
 
 @pytest.mark.asyncio
