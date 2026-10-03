@@ -28,3 +28,8 @@ class IngressoPagina(BaseModel):
     total: int
     limit: int
     offset: int
+
+
+class IngressoDownloadResponse(BaseModel):
+    url: str
+    expira_em: int = 300
