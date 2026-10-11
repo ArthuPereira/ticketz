@@ -1,0 +1,33 @@
+.footer {
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.content {
+  align-items: center;
+  display: flex;
+  gap: var(--space-4);
+  justify-content: space-between;
+  margin: 0 auto;
+  max-width: var(--content-max-width);
+  padding: var(--space-6) var(--page-gutter);
+}
+
+.content p {
+  margin: 0;
+}
+
+.cloudNote {
+  align-items: center;
+  display: inline-flex;
+  gap: var(--space-2);
+}
+
+@media (max-width: 36rem) {
+  .content {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

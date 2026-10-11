@@ -1,0 +1,31 @@
+.shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.main {
+  flex: 1;
+  margin: 0 auto;
+  max-width: var(--content-max-width);
+  padding: var(--space-8) var(--page-gutter) var(--space-14);
+  width: 100%;
+}
+
+.skipLink {
+  background: var(--color-brand-800);
+  border-radius: 0 0 var(--radius-md) 0;
+  color: var(--color-white);
+  font-weight: 700;
+  left: 0;
+  padding: var(--space-3) var(--space-4);
+  position: fixed;
+  top: 0;
+  transform: translateY(-120%);
+  transition: transform var(--transition-fast);
+  z-index: 100;
+}
+
+.skipLink:focus {
+  transform: translateY(0);
+}

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" role="img" aria-labelledby="title description">
+  <title id="title">Imagem padrão de evento</title>
+  <desc id="description">Ilustração abstrata com um ingresso e luzes</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#24164d"/>
+      <stop offset="1" stop-color="#6d4be0"/>
+    </linearGradient>
+    <radialGradient id="glow">
+      <stop stop-color="#f4c95d" stop-opacity=".75"/>
+      <stop offset="1" stop-color="#f4c95d" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="800" height="450" fill="url(#background)"/>
+  <circle cx="120" cy="90" r="180" fill="url(#glow)"/>
+  <circle cx="700" cy="390" r="230" fill="url(#glow)" opacity=".45"/>
+  <g transform="translate(220 105) rotate(-7 180 120)">
+    <path d="M20 20h320a20 20 0 0 1 20 20v50a32 32 0 0 0 0 60v50a20 20 0 0 1-20 20H20a20 20 0 0 1-20-20v-50a32 32 0 0 0 0-60V40a20 20 0 0 1 20-20Z" fill="#fff"/>
+    <path d="M245 38v164" stroke="#b9aedf" stroke-width="4" stroke-linecap="round" stroke-dasharray="8 12"/>
+    <path d="M55 76h130M55 112h105M55 148h76" stroke="#5b3cc4" stroke-width="14" stroke-linecap="round"/>
+    <circle cx="302" cy="120" r="28" fill="#f4c95d"/>
+  </g>
+</svg>

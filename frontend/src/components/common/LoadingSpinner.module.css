@@ -1,0 +1,22 @@
+.inline,
+.fullPage {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: flex;
+  gap: var(--space-3);
+  justify-content: center;
+}
+
+.fullPage {
+  min-height: 100vh;
+}
+
+.icon {
+  animation: spin 700ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
