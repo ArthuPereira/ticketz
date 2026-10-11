@@ -5,7 +5,7 @@ from src.core.settings import settings
 # motor de conexão assíncrona que consome a property gerada pelo config.py
 engine = create_async_engine(
     settings.database_url, 
-    echo=True,  # imprime as queries SQL no terminal, tirar depois
+    echo=False,
 )
 
 # fábrica de sessões assíncronas para manipulação de dados

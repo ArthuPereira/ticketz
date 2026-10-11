@@ -1,167 +1,161 @@
-# Ambiente local (MiniStack + Terraform)
+# Ticketz - Backend de Venda e Emissão de Ingressos
 
-Emulação local dos serviços da AWS usados no trabalho (S3, RDS, ElastiCache, DynamoDB, SNS/SQS) para desenvolver sem gastar créditos do Academy. O Terraform roda em container, então não precisa instalar nada além do Docker.
+Emulação local dos serviços da AWS (S3, DynamoDB, SNS, SQS) via MiniStack, juntamente com PostgreSQL e Redis via Docker Compose, permitindo desenvolver e testar toda a arquitetura sem custos na nuvem. O Terraform roda em container e provisiona a infraestrutura emulada.
 
-## Estrutura
+## Estrutura do Projeto
 
 ```
 ├── docker-compose.yml
 ├── .env.example
-└── src
-    └── infra
-        ├── local/     # recursos emulados no MiniStack (um arquivo por serviço)
-        └── academy/   # recursos na AWS Academy (main.tf por enquanto)
+├── pyproject.toml
+├── alembic.ini
+├── migrations/          # Migrações do banco de dados relacional (Alembic)
+├── infra/               # Infraestrutura como código Terraform (S3, SNS/SQS, DynamoDB)
+├── src/
+│   ├── main.py          # Ponto de entrada da API FastAPI
+│   ├── core/            # Configurações, banco, cache, AWS e models
+│   ├── auth/            # Módulo de autenticação JWT e controle de acesso
+│   ├── evento/          # Gestão de eventos, vitrine e upload de banners
+│   ├── ingresso/        # Compra atômica, listagem e download de ingressos
+│   └── health.py        # Health check (/health/live e /health/ready)
+├── worker/
+│   ├── __main__.py      # Loop de consumo SQS, retry, DLQ e reconciliação
+│   ├── handler.py       # Lógica de processamento e atualização de status
+│   └── pdf.py           # Geração do PDF em memória com QR Code
+└── tests/               # Suíte completa de testes automatizados
 ```
 
 ## Pré-requisitos
 
+- Python 3.12+ e [uv](https://github.com/astral-sh/uv)
 - Docker e Docker Compose
 
-## Configuração
+---
 
+## Subindo o Ambiente (Passo a Passo)
+
+### 1. Configurar Variáveis de Ambiente
+Copie o arquivo de exemplo para criar o seu `.env`:
 ```bash
 cp .env.example .env
 ```
+O `.env.example` já vem pré-configurado para o ambiente local (conectando em `localhost:5432` para Postgres, `localhost:6379` para Redis e `localhost:4566` para MiniStack).
 
-O `.env` é lido automaticamente pelo `docker compose` e **não** vai para o git. As variáveis principais:
-
-| Variável | Para quê |
-| --- | --- |
-| `AWS_REGION` | Região usada pelo emulador e pelo Terraform |
-| `MINISTACK_HOST` | Host que a aplicação usa para alcançar o emulador e os bancos (`localhost` se a app roda fora do Docker) |
-| `DB_NAME`, `DB_USER`, `DB_PASSWORD` | Credenciais do Postgres criado pelo Terraform |
-| `AWS_ENDPOINT_URL` | **Para a aplicação**: faz os SDKs da AWS falarem com o emulador sem mudar código. Na nuvem, não defina |
-
-## Subindo o ambiente
-
-### 1. Emulador
-
+### 2. Subir os Serviços Básicos no Docker
+Inicie os containers do emulador AWS (MiniStack), do banco relacional (PostgreSQL) e do cache (Redis):
 ```bash
-docker compose up -d ministack
-docker compose ps
-curl http://localhost:4566/_ministack/health
+docker compose up -d ministack postgres redis
 ```
 
-Esperado: `ministack` como `healthy` e o curl devolvendo um JSON com os serviços.
+Verifique se todos os containers estão saudáveis (`healthy`):
+```bash
+docker compose ps
+```
 
-### 2. Init e plan
+### 3. Executar as Migrações do Banco de Dados (Alembic)
+Com o PostgreSQL rodando, crie as tabelas no banco de dados (`usuarios`, `eventos`, `ingressos`):
+```bash
+uv run alembic upgrade head
+```
+
+### 4. Provisionar os Recursos AWS com Terraform
+O container do Terraform conecta ao MiniStack e provisiona os buckets S3, o tópico SNS, a fila SQS com DLQ e a tabela do DynamoDB:
 
 ```bash
 docker compose run --rm terraform init
 docker compose run --rm terraform plan
-```
-
-Esperado: `Plan: 9 to add, 0 to change, 0 to destroy`.
-
-### 3. Apply
-
-```bash
 docker compose run --rm terraform apply -auto-approve
 ```
 
-O RDS e o ElastiCache demoram mais na primeira vez, porque o MiniStack baixa as imagens do Postgres e do Redis. Em outro terminal, `docker ps` deve mostrar dois containers novos além do `ministack`.
-
-### 4. Outputs
-
+Para conferir os recursos criados e os identificadores:
 ```bash
 docker compose run --rm terraform output
 ```
 
-Anote `db_port` e `cache_port` e copie os valores para o `.env` da aplicação. O `db_host` deve ser `localhost` (ou o valor de `MINISTACK_HOST`), **não** um IP interno tipo `172.x.x.x`. Se vier IP interno, a variável `MINISTACK_RDS_PUBLIC_ENDPOINT` não foi aplicada.
+Os outputs esperados são:
+- `s3_bucket`: `ticketz-files-local`
+- `sns_topic_arn`: `arn:aws:sns:us-east-1:000000000000:ticketz-ticket-purchased`
+- `sqs_queue_url`: `http://localhost:4566/000000000000/ticketz-ticket-processing`
+- `sqs_dlq_url`: `http://localhost:4566/000000000000/ticketz-ticket-processing-dlq`
+- `dynamodb_table`: `ticketz-action-logs`
 
-### 5. Alcançabilidade dos bancos
+### 5. Subir a Aplicação
 
+Em terminais separados:
+
+#### Terminal 1: API (FastAPI / Uvicorn)
 ```bash
-nc -zv localhost <db_port>
-nc -zv localhost <cache_port>
+uv run uvicorn src.main:app --reload
+```
+A API estará disponível em `http://localhost:8000` e a documentação interativa em `http://localhost:8000/docs`.
+
+#### Terminal 2: Worker Assíncrono
+O worker consome mensagens da fila SQS com long polling (20s), gera o PDF com QR Code, faz o upload para o S3 e marca o ingresso como `READY`:
+```bash
+uv run python -m worker
 ```
 
-Esperado: `succeeded` nos dois. Para testar de verdade (nomes dos containers no `docker ps`):
+---
 
+## Executando os Testes Automatizados
+
+O projeto possui cobertura completa de testes unitários e de integração (autenticação, eventos, ingressos, serviços AWS e worker):
 ```bash
-docker exec -it <container-postgres> psql -U appuser -d appdb -c "select 1"
-docker exec -it <container-redis> redis-cli ping
+uv run pytest -v
 ```
 
-### 6. S3, SNS/SQS e DynamoDB
+---
 
-O AWS CLI roda em container (serviço `aws` do compose), já apontado para o emulador. Se preferir, crie um alias: `alias awsl='docker compose run --rm aws'`.
+## Verificação e Comandos Úteis com AWS CLI
+
+O AWS CLI roda em container via Docker Compose (serviço `aws`), apontando diretamente para o MiniStack:
 
 ```bash
-# S3 (o arquivo precisa estar dentro da pasta do projeto)
-echo "oi" > teste.txt
-docker compose run --rm aws s3 cp teste.txt s3://cloudapp-files-local/teste.txt
-docker compose run --rm aws s3 ls s3://cloudapp-files-local/
-rm teste.txt
+# S3: Listar arquivos no bucket
+docker compose run --rm aws s3 ls s3://ticketz-files-local/
 
-# SNS -> SQS (desacoplamento)
-docker compose run --rm aws sns publish --topic-arn <sns_topic_arn> --message "arquivo novo"
-docker compose run --rm aws sqs receive-message --queue-url <sqs_queue_url>
+# SNS -> SQS: Publicar uma mensagem de teste no tópico SNS
+docker compose run --rm aws sns publish \
+  --topic-arn "arn:aws:sns:us-east-1:000000000000:ticketz-ticket-purchased" \
+  --message '{"ingresso_id": 1}'
 
-# DynamoDB (log de ações)
-docker compose run --rm aws dynamodb put-item --table-name cloudapp-action-logs \
-  --item '{"log_id":{"S":"1"},"action":{"S":"CREATE"}}'
-docker compose run --rm aws dynamodb scan --table-name cloudapp-action-logs
+# SQS: Ler mensagens da fila de processamento
+docker compose run --rm aws sqs receive-message \
+  --queue-url "http://localhost:4566/000000000000/ticketz-ticket-processing"
+
+# DynamoDB: Consultar registros de log de ações
+docker compose run --rm aws dynamodb scan --table-name ticketz-action-logs
 ```
 
-O que confirma o desacoplamento: a mensagem publicada no SNS aparece no `receive-message` do SQS. Como a assinatura usa `raw_message_delivery`, o `Body` deve ser exatamente `arquivo novo`, sem o envelope JSON do SNS.
+---
 
-## Problemas comuns
+## Limpeza e Reset do Ambiente
 
-| Sintoma | Causa provável |
-| --- | --- |
-| `init` diz que não há arquivos `.tf` | O volume do serviço `terraform` no compose não aponta para `./src/infra/local` |
-| Apply travado no RDS | Veja `docker logs ministack` (pode ser a checagem de disponibilidade contra o host publicado) |
-| `db_host` com IP `172.x.x.x` | `MINISTACK_RDS_PUBLIC_ENDPOINT` não está ativa no serviço `ministack` |
-| Terraform diz que recursos existem, mas o emulador não os conhece | Você fez `docker compose down` sem limpar o state (veja abaixo) |
-| `sqs receive-message` volta vazio | A URL da fila vem do `terraform output` e pode ter `localhost`; se falhar, use `docker compose run --rm aws sqs list-queues` para pegar a URL certa |
-| Arquivos `.terraform/` e `tfstate` com dono root (Linux) | Adicione `user: "<seu-uid>:<seu-gid>"` ao serviço `terraform` |
+### Parada Normal (Fim do dia)
+Para pausar os serviços mantendo os dados persistidos:
+```bash
+docker compose down
+```
 
-## Limpeza
-
-**A ordem importa.** O emulador guarda o estado em memória e o Terraform guarda o dele em `terraform.tfstate`. Se derrubar o emulador primeiro, os dois ficam dessincronizados e os containers de Postgres/Redis podem sobrar.
-
-### Limpeza normal (fim do dia)
+### Reset Completo (Recomeçar do zero)
+Para recriar todo o estado local (banco, filas, tabelas e buckets):
 
 ```bash
-# 1. Destrói os recursos (inclui os containers de Postgres e Redis)
+# 1. Destrói os recursos do Terraform no MiniStack
 docker compose run --rm terraform destroy -auto-approve
 
-# 2. Derruba o emulador
-docker compose down
+# 2. Derruba os containers e apaga os volumes do Postgres e Redis
+docker compose down -v
+
+# 3. Limpa o estado local do Terraform (se necessário)
+rm -f infra/terraform.tfstate*
 ```
 
-### Reset completo (recomeçar do zero)
+---
 
-Se já fez `docker compose down` sem o `destroy`, ou quer partir de um estado limpo:
+## Ambiente AWS Academy (Produção / Lab)
 
-```bash
-docker compose down
-
-# Apaga o state do Terraform (ele descreve recursos que não existem mais)
-rm -f src/infra/local/terraform.tfstate*
-
-# Procura containers órfãos de Postgres/Redis criados pelo MiniStack
-docker ps -a
-docker rm -f <ids-dos-containers-postgres-e-redis>
-```
-
-Depois é só repetir a partir do passo 1.
-
-### Faxina pesada (opcional)
-
-Remove também o cache do provider e as imagens baixadas:
-
-```bash
-rm -rf src/infra/local/.terraform
-docker image rm ministackorg/ministack hashicorp/terraform:1.10 amazon/aws-cli
-docker image prune
-```
-
-Mantenha o `.terraform.lock.hcl` no git: ele trava a versão do provider para todo o grupo.
-
-## Ambiente Academy
-
-Os arquivos em `src/infra/academy` usam a AWS real. As credenciais **não** ficam no código: copie-as do painel *AWS Details* do Learner Lab para variáveis de ambiente (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN`). Elas expiram quando a sessão do lab termina. No Academy não é possível criar IAM roles; use a `LabRole` e o `LabInstanceProfile` que já existem.
-
-O Auto Scaling Group e o Load Balancer da Parte 2 são configurados pelo console.
+Para deploy na AWS Academy:
+1. Copie as credenciais temporárias fornecidas no painel *AWS Details* do Learner Lab (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN`).
+2. Não defina a variável `AWS_ENDPOINT_URL` (para que o boto3 se comunique diretamente com a AWS real).
+3. Utilize as roles já existentes (`LabRole` e `LabInstanceProfile`).
