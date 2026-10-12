@@ -150,6 +150,26 @@ describe('TicketDetailsPage', () => {
     await waitFor(() => expect(ticketDetailMocks.getTicketDownload).toHaveBeenCalledWith(91))
     expect(clickSpy).toHaveBeenCalledOnce()
     expect(document.querySelector('a[href*="temporary=true"]')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Reprocessar ingresso' })).not.toBeInTheDocument()
+  })
+
+  it('não inicia polling quando o primeiro estado já é READY', async () => {
+    vi.useFakeTimers()
+    ticketDetailMocks.getTicket.mockResolvedValue({
+      ...pendingTicket,
+      pronto_em: '2026-10-12T12:01:00Z',
+      status: 'READY',
+    })
+
+    renderDetails()
+    await vi.waitFor(() =>
+      expect(screen.getByText('Pronto para baixar')).toBeInTheDocument(),
+    )
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(TICKET_POLLING_INTERVAL_MS * 2)
+    })
+    expect(ticketDetailMocks.getTicket).toHaveBeenCalledOnce()
   })
 
   it('reprocessa FAILED uma única vez, troca para PENDING e invalida os caches', async () => {
@@ -178,6 +198,7 @@ describe('TicketDetailsPage', () => {
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ticketKeys.detail(91) })
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ticketKeys.lists() })
     })
+    expect(screen.queryByRole('button', { name: 'Baixar PDF' })).not.toBeInTheDocument()
   })
 
   it('usa a mesma mensagem neutra para ingresso inexistente ou alheio', async () => {

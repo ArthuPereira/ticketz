@@ -62,6 +62,25 @@ describe('EventForm', () => {
     )
   })
 
+  it('rejeita uma data passada antes de enviar', async () => {
+    const onSubmit = vi.fn()
+    const user = userEvent.setup()
+
+    render(
+      <EventForm mode="create" onSubmit={onSubmit} submitLabel="Criar evento" />,
+    )
+    await user.type(screen.getByLabelText('Nome'), 'Festival Ticketz')
+    await user.type(screen.getByLabelText('Local'), 'Campus do Pici')
+    await user.type(screen.getByLabelText('Data e hora'), '2020-01-01T20:00')
+    await user.type(screen.getByLabelText('Total de ingressos'), '500')
+    await user.click(screen.getByRole('button', { name: 'Criar evento' }))
+
+    expect(
+      await screen.findByText('A data do evento deve ser futura.'),
+    ).toBeInTheDocument()
+    expect(onSubmit).not.toHaveBeenCalled()
+  })
+
   it('rejeita formato e tamanho inválidos do banner no cliente', () => {
     render(
       <EventForm mode="create" onSubmit={vi.fn()} submitLabel="Criar evento" />,
