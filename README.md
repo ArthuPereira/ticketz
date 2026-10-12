@@ -95,6 +95,17 @@ O worker consome mensagens da fila SQS com long polling (20s), gera o PDF com QR
 uv run python -m worker
 ```
 
+#### Terminal 3: Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+O frontend local usa `http://localhost:8000` por meio de `VITE_API_URL`. A
+origem `http://localhost:5173` já está autorizada por padrão no backend.
+
 ---
 
 ## Executando os Testes Automatizados
@@ -103,6 +114,32 @@ O projeto possui cobertura completa de testes unitários e de integração (aute
 ```bash
 uv run pytest -v
 ```
+
+Os testes do frontend ficam em `frontend/`:
+
+```bash
+cd frontend
+npm run test:all
+npm run lint
+npm run build
+```
+
+---
+
+## Publicação do frontend na AWS
+
+A publicação recomendada usa um bucket S3 privado e uma distribuição
+CloudFront com HTTPS. Essa hospedagem é separada do bucket que armazena banners
+e PDFs de ingressos.
+
+O módulo `infra/frontend/` prepara somente a hospedagem estática. Ele não
+substitui os recursos obrigatórios do trabalho: backend em EC2 atrás do ALB e
+Auto Scaling Group, dados no RDS, cache no ElastiCache, auditoria no DynamoDB e
+processamento desacoplado por SNS/SQS.
+
+Antes da publicação, o backend precisa estar disponível em uma URL HTTPS. Veja
+`infra/frontend/README.md` e `frontend/README.md` para provisionamento, build e
+deploy.
 
 ---
 

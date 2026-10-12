@@ -1,0 +1,24 @@
+.badge {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: var(--font-size-xs);
+  font-weight: 800;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+}
+
+.pending {
+  background: #fff9e8;
+  color: var(--color-warning);
+}
+
+.ready {
+  background: #ecfdf5;
+  color: var(--color-success);
+}
+
+.failed {
+  background: #fff1f2;
+  color: var(--color-danger);
+}

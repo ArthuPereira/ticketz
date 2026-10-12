@@ -1,0 +1,8 @@
+aws_region          = "us-east-1"
+frontend_bucket_name = "ticketz-frontend-substitua-por-um-nome-unico"
+price_class         = "PriceClass_100"
+
+extra_tags = {
+  Course = "CK0205"
+  Owner  = "equipe-ticketz"
+}

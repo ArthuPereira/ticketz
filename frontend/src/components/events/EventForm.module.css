@@ -1,0 +1,83 @@
+.form {
+  display: grid;
+  gap: var(--space-7);
+}
+
+.fieldGrid {
+  display: grid;
+  gap: var(--space-5);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.field,
+.fieldWide {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.fieldWide {
+  grid-column: 1 / -1;
+}
+
+.field label,
+.fieldWide label {
+  font-size: var(--font-size-sm);
+  font-weight: 750;
+}
+
+.field input,
+.fieldWide input,
+.fieldWide textarea {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  min-height: 2.9rem;
+  min-width: 0;
+  padding: var(--space-3) var(--space-4);
+  resize: vertical;
+  width: 100%;
+}
+
+.field input[readonly] {
+  background: var(--color-surface-muted);
+  color: var(--color-text-muted);
+}
+
+.field input[aria-invalid='true'],
+.fieldWide input[aria-invalid='true'],
+.fieldWide textarea[aria-invalid='true'] {
+  border-color: var(--color-danger);
+}
+
+.field p,
+.fieldWide p {
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+  margin: 0;
+}
+
+.field .help {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 40rem) {
+  .fieldGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .fieldWide {
+    grid-column: auto;
+  }
+
+  .actions button {
+    width: 100%;
+  }
+}

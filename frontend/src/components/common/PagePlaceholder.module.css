@@ -1,0 +1,54 @@
+.section {
+  align-items: center;
+  background:
+    radial-gradient(circle at top right, var(--color-brand-100), transparent 42%),
+    var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  margin: clamp(var(--space-8), 8vw, var(--space-16)) auto;
+  max-width: 44rem;
+  padding: clamp(var(--space-8), 8vw, var(--space-14)) var(--space-5);
+  text-align: center;
+}
+
+.section h1 {
+  margin: var(--space-3) 0;
+}
+
+.iconWrapper {
+  align-items: center;
+  background: var(--color-brand-100);
+  border-radius: var(--radius-lg);
+  color: var(--color-brand-700);
+  display: flex;
+  height: 3.5rem;
+  justify-content: center;
+  width: 3.5rem;
+}
+
+.eyebrow {
+  color: var(--color-brand-700);
+  font-size: var(--font-size-sm);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  margin: var(--space-5) 0 0;
+  text-transform: uppercase;
+}
+
+.description {
+  color: var(--color-text-muted);
+  margin: 0;
+  max-width: 34rem;
+}
+
+.actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  justify-content: center;
+  margin-top: var(--space-7);
+}
