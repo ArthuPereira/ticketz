@@ -1,4 +1,4 @@
-import { Cloud } from 'lucide-react'
+import { TicketCheck } from 'lucide-react'
 
 import styles from './Footer.module.css'
 
@@ -9,9 +9,9 @@ export function Footer() {
     <footer className={styles.footer}>
       <div className={styles.content}>
         <p>© {currentYear} Ticketz</p>
-        <p className={styles.cloudNote}>
-          <Cloud aria-hidden="true" size={17} />
-          Projeto demonstrativo com arquitetura AWS
+        <p className={styles.tagline}>
+          <TicketCheck aria-hidden="true" size={17} />
+          Bons momentos começam com o ingresso certo
         </p>
       </div>
     </footer>

@@ -30,7 +30,7 @@
   max-width: 34rem;
 }
 
-.cloudNote {
+.trustNote {
   align-items: flex-start;
   background: var(--color-brand-50);
   border: 1px solid var(--color-brand-100);
@@ -41,13 +41,13 @@
   padding: var(--space-4);
 }
 
-.cloudNote svg {
+.trustNote svg {
   color: var(--color-brand-700);
   flex: 0 0 auto;
   margin-top: 0.15rem;
 }
 
-.cloudNote p {
+.trustNote p {
   color: var(--color-text);
   font-size: var(--font-size-sm);
 }

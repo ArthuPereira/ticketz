@@ -2,9 +2,9 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import {
   ArrowRight,
   CalendarX,
-  CloudCog,
-  DatabaseZap,
-  TicketCheck,
+  Compass,
+  ShieldCheck,
+  Sparkles,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useState } from 'react'
@@ -20,21 +20,21 @@ import { EventGridSkeleton } from '../components/events/EventGridSkeleton'
 import { getUserErrorMessage } from '../utils/errors'
 import styles from './HomePage.module.css'
 
-const cloudFeatures = [
+const experienceBenefits = [
   {
-    description: 'Respostas HIT e MISS tornam o cache Redis visível na demonstração.',
-    icon: DatabaseZap,
-    title: 'Catálogo mais rápido',
+    description: 'Descubra novas experiências e encontre a opção ideal para você.',
+    icon: Compass,
+    title: 'Encontre seu próximo evento',
   },
   {
-    description: 'SNS, SQS e o worker processam o ingresso sem prender a sua compra.',
-    icon: CloudCog,
-    title: 'Processamento assíncrono',
+    description: 'Garanta seu lugar em poucos passos, com uma jornada clara e tranquila.',
+    icon: Sparkles,
+    title: 'Compra simples e rápida',
   },
   {
-    description: 'Banners e PDFs são entregues pelo S3 usando links temporários.',
-    icon: TicketCheck,
-    title: 'Arquivos protegidos',
+    description: 'Acompanhe a emissão e acesse seu ingresso digital sempre que precisar.',
+    icon: ShieldCheck,
+    title: 'Seu ingresso em boas mãos',
   },
 ]
 
@@ -76,7 +76,7 @@ export function HomePage() {
         <div aria-hidden="true" className={styles.ticketArt}>
           <div className={styles.ticketTop}>
             <span>Ticketz apresenta</span>
-            <strong>Festival na nuvem</strong>
+            <strong>Festival Aurora</strong>
           </div>
           <div className={styles.ticketBottom}>
             <span>FORTALEZA</span>
@@ -85,13 +85,13 @@ export function HomePage() {
         </div>
       </section>
 
-      <section aria-labelledby="cloud-title" className={styles.cloudSection}>
+      <section aria-labelledby="experience-title" className={styles.experienceSection}>
         <div className={styles.sectionHeading}>
-          <p className={styles.eyebrow}>Experiência conectada à AWS</p>
-          <h2 id="cloud-title">Da descoberta ao PDF do ingresso</h2>
+          <p className={styles.eyebrow}>Tudo em um só lugar</p>
+          <h2 id="experience-title">Do primeiro clique ao grande momento</h2>
         </div>
         <div className={styles.featureGrid}>
-          {cloudFeatures.map(({ description, icon: Icon, title }) => (
+          {experienceBenefits.map(({ description, icon: Icon, title }) => (
             <article className={styles.featureCard} key={title}>
               <span aria-hidden="true" className={styles.featureIcon}>
                 <Icon size={24} />

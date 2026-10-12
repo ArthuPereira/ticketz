@@ -123,7 +123,7 @@ export function EventAuditPage() {
         <div>
           <p>Auditoria</p>
           <h1 id="audit-title">Histórico do evento #{eventId}</h1>
-          <span>Ações registradas no DynamoDB, da mais recente para a mais antiga.</span>
+          <span>Veja as alterações do evento, da mais recente para a mais antiga.</span>
         </div>
       </div>
 

@@ -2,8 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowLeft,
   CalendarDays,
-  CloudCog,
   Download,
+  Hourglass,
   MapPin,
   QrCode,
   RefreshCw,
@@ -227,10 +227,10 @@ export function TicketDetailsPage() {
 
           {ticket.status === 'PENDING' && (
             <div className={styles.statusContent}>
-              <CloudCog aria-hidden="true" className={styles.pendingIcon} size={34} />
+              <Hourglass aria-hidden="true" className={styles.pendingIcon} size={34} />
               <p>
-                Seu PDF está sendo gerado pelo processamento assíncrono. Esta
-                página atualiza automaticamente.
+                Estamos preparando seu ingresso digital. Esta página será atualizada
+                automaticamente quando ele estiver pronto.
               </p>
               {pollingExpired && (
                 <Alert>
@@ -255,8 +255,8 @@ export function TicketDetailsPage() {
           {ticket.status === 'READY' && (
             <div className={styles.statusContent}>
               <p>
-                O PDF está pronto. O link seguro é solicitado no momento do
-                download e expira em cinco minutos.
+                Seu ingresso está pronto. Por segurança, cada link de download fica
+                disponível por cinco minutos.
               </p>
               {downloadMutation.isError && (
                 <Alert variant="error">

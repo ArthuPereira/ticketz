@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { DatabaseZap } from 'lucide-react'
+import { Gauge } from 'lucide-react'
 
 import { getCacheStats } from '../../api/cache.api'
 import type { CacheStatus } from '../../types/api'
@@ -11,12 +11,12 @@ interface CacheDebugProps {
 
 const statusContent = {
   HIT: {
-    description: 'Resposta entregue pelo cache Redis.',
-    label: 'HIT · Redis',
+    description: 'Resposta reutilizada para acelerar o carregamento.',
+    label: 'HIT · resposta rápida',
   },
   MISS: {
-    description: 'Dados consultados na base e armazenados no Redis.',
-    label: 'MISS · Base → Redis',
+    description: 'Dados atualizados e preparados para os próximos acessos.',
+    label: 'MISS · dados atualizados',
   },
 }
 
@@ -30,16 +30,16 @@ export function CacheDebug({ status }: CacheDebugProps) {
 
   return (
     <aside
-      aria-label="Diagnóstico do cache Redis"
+      aria-label="Diagnóstico de desempenho"
       className={`${styles.panel} ${status ? styles[status.toLowerCase()] : styles.unavailable}`}
     >
-      <DatabaseZap aria-hidden="true" className={styles.icon} size={22} />
+      <Gauge aria-hidden="true" className={styles.icon} size={22} />
       <div className={styles.content}>
-        <span className={styles.eyebrow}>Demonstração AWS</span>
-        <strong>{content?.label ?? 'X-Cache indisponível'}</strong>
+        <span className={styles.eyebrow}>Desempenho do catálogo</span>
+        <strong>{content?.label ?? 'Status indisponível'}</strong>
         <p>
           {content?.description ??
-            'A resposta não expôs o cabeçalho de cache para o navegador.'}
+            'Não foi possível consultar o desempenho deste carregamento.'}
         </p>
         {statsQuery.isPending && <small>Carregando métricas acumuladas…</small>}
         {statsQuery.isError && <small>Métricas acumuladas indisponíveis.</small>}

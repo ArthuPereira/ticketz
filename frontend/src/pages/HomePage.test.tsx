@@ -200,7 +200,7 @@ describe('HomePage', () => {
 
     await screen.findByText('Festival Ticketz')
     expect(
-      screen.queryByLabelText('Diagnóstico do cache Redis'),
+      screen.queryByLabelText('Diagnóstico de desempenho'),
     ).not.toBeInTheDocument()
     expect(eventApiMocks.getCacheStats).not.toHaveBeenCalled()
   })
@@ -219,8 +219,8 @@ describe('HomePage', () => {
 
     renderHome()
 
-    const debug = await screen.findByLabelText('Diagnóstico do cache Redis')
-    expect(debug).toHaveTextContent('HIT · Redis')
+    const debug = await screen.findByLabelText('Diagnóstico de desempenho')
+    expect(debug).toHaveTextContent('HIT · resposta rápida')
     await screen.findByText(/Acumulado:/)
     expect(debug).toHaveTextContent('3 acertos, 1 falha · 75% de acerto')
   })

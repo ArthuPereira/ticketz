@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Cloud, LogIn } from 'lucide-react'
+import { LogIn, ShieldCheck } from 'lucide-react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
@@ -75,11 +75,10 @@ export function LoginPage() {
           Use seu e-mail e senha para acessar compras ou administrar eventos com
           segurança.
         </p>
-        <div className={styles.cloudNote}>
-          <Cloud aria-hidden="true" size={24} />
+        <div className={styles.trustNote}>
+          <ShieldCheck aria-hidden="true" size={24} />
           <p>
-            A sessão usa um JWT validado pela API. Seus dados privados são removidos
-            do cache ao sair.
+            Sua conta e seus ingressos ficam protegidos durante toda a experiência.
           </p>
         </div>
       </div>

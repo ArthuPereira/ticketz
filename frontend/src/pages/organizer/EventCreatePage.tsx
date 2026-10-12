@@ -61,10 +61,7 @@ export function EventCreatePage() {
         <div>
           <p>Novo evento</p>
           <h1>Criar evento</h1>
-          <span>
-            Preencha os dados do evento. O banner será enviado ao S3 em uma segunda
-            operação.
-          </span>
+          <span>Preencha os detalhes e escolha uma imagem para apresentar seu evento.</span>
         </div>
       </div>
       <div className={styles.card}>

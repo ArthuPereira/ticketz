@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Cloud, UserPlus } from 'lucide-react'
+import { ShieldCheck, UserPlus } from 'lucide-react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router-dom'
@@ -72,11 +72,10 @@ export function RegisterPage() {
           Escolha participar dos eventos ou gerenciar sua própria programação como
           organizador.
         </p>
-        <div className={styles.cloudNote}>
-          <Cloud aria-hidden="true" size={24} />
+        <div className={styles.trustNote}>
+          <ShieldCheck aria-hidden="true" size={24} />
           <p>
-            O cadastro é enviado à API, que protege a senha e mantém a autorização como
-            fonte da verdade.
+            Seus dados ficam protegidos para você aproveitar cada evento com tranquilidade.
           </p>
         </div>
       </div>

@@ -147,7 +147,7 @@
   right: var(--space-6);
 }
 
-.cloudSection,
+.experienceSection,
 .eventsSection {
   padding-top: clamp(var(--space-12), 8vw, var(--space-16));
 }

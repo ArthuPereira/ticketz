@@ -19,7 +19,7 @@
   margin: 0;
 }
 
-.cloudNote {
+.tagline {
   align-items: center;
   display: inline-flex;
   gap: var(--space-2);
