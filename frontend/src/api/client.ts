@@ -1,5 +1,5 @@
 import type { ApiErrorData, ApiResponse, CacheStatus } from '../types/api'
-import { getAuthToken } from '../utils/storage'
+import { expireAuthSession, getAuthToken } from '../utils/storage'
 
 export interface ApiRequestOptions<TBody = unknown> {
   body?: FormData | TBody | null
@@ -128,6 +128,11 @@ export async function apiRequest<TResponse = void, TBody = unknown>(
 
   if (!response.ok) {
     const detail = getErrorDetail(responseBody, response.statusText)
+
+    if (response.status === 401 && path !== '/auth/login') {
+      expireAuthSession()
+    }
+
     throw new ApiError(
       response.status,
       detail,

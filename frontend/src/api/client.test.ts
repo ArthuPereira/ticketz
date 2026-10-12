@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { AUTH_TOKEN_KEY } from '../utils/storage'
+import {
+  AUTH_SESSION_EXPIRED_EVENT,
+  AUTH_TOKEN_KEY,
+} from '../utils/storage'
 import { ApiError, apiRequest } from './client'
 
 const fetchMock = vi.fn<typeof fetch>()
@@ -129,5 +132,49 @@ describe('apiRequest', () => {
     await apiRequest('/eventos/1', { signal: controller.signal })
 
     expect(fetchMock.mock.calls[0][1]?.signal).toBe(controller.signal)
+  })
+
+  it('encerra a sessão quando uma rota autenticada retorna 401', async () => {
+    sessionStorage.setItem(AUTH_TOKEN_KEY, 'jwt-expirado')
+    const sessionExpiredHandler = vi.fn()
+    window.addEventListener(AUTH_SESSION_EXPIRED_EVENT, sessionExpiredHandler, {
+      once: true,
+    })
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ detail: 'Token expirado' }), {
+        headers: { 'Content-Type': 'application/json' },
+        status: 401,
+        statusText: 'Unauthorized',
+      }),
+    )
+
+    await expect(apiRequest('/auth/me')).rejects.toMatchObject({ status: 401 })
+
+    expect(sessionStorage.getItem(AUTH_TOKEN_KEY)).toBeNull()
+    expect(sessionExpiredHandler).toHaveBeenCalledOnce()
+  })
+
+  it('preserva o tratamento específico do formulário quando o login retorna 401', async () => {
+    const sessionExpiredHandler = vi.fn()
+    window.addEventListener(AUTH_SESSION_EXPIRED_EVENT, sessionExpiredHandler, {
+      once: true,
+    })
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ detail: 'Credenciais inválidas' }), {
+        headers: { 'Content-Type': 'application/json' },
+        status: 401,
+        statusText: 'Unauthorized',
+      }),
+    )
+
+    await expect(
+      apiRequest('/auth/login', {
+        body: { email: 'ana@example.com', senha: 'incorreta' },
+        method: 'POST',
+      }),
+    ).rejects.toMatchObject({ status: 401 })
+
+    expect(sessionExpiredHandler).not.toHaveBeenCalled()
+    window.removeEventListener(AUTH_SESSION_EXPIRED_EVENT, sessionExpiredHandler)
   })
 })
