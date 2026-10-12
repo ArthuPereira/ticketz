@@ -9,6 +9,8 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run --passWithNoTests",
+    "test:all": "npm run test && npm run test:e2e",
+    "test:e2e": "playwright test",
     "test:watch": "vitest"
   },
   "dependencies": {

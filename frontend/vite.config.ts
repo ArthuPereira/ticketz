@@ -1,5 +1,5 @@
 import react from '@vitejs/plugin-react'
-import { defineConfig } from 'vitest/config'
+import { configDefaults, defineConfig } from 'vitest/config'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -7,6 +7,7 @@ export default defineConfig({
   test: {
     clearMocks: true,
     environment: 'jsdom',
+    exclude: [...configDefaults.exclude, 'tests/e2e/**'],
     setupFiles: './src/test/setup.ts',
   },
 })
