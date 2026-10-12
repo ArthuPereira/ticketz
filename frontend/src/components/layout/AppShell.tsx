@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react'
+import { Suspense, useEffect, useRef } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 
+import { LoadingSpinner } from '../common/LoadingSpinner'
 import { Footer } from './Footer'
 import { Header } from './Header'
 import styles from './AppShell.module.css'
@@ -26,7 +27,9 @@ export function AppShell() {
       </a>
       <Header />
       <main className={styles.main} id="main-content" ref={mainRef} tabIndex={-1}>
-        <Outlet />
+        <Suspense fallback={<LoadingSpinner fullPage label="Carregando página" />}>
+          <Outlet />
+        </Suspense>
       </main>
       <Footer />
     </div>

@@ -3,17 +3,19 @@ import { createBrowserRouter } from 'react-router-dom'
 import { OrganizerRoute } from '../auth/OrganizerRoute'
 import { ProtectedRoute } from '../auth/ProtectedRoute'
 import { AppShell } from '../components/layout/AppShell'
-import { EventDetailsPage } from '../pages/EventDetailsPage'
-import { HomePage } from '../pages/HomePage'
-import { LoginPage } from '../pages/LoginPage'
-import { MyTicketsPage } from '../pages/MyTicketsPage'
-import { NotFoundPage } from '../pages/NotFoundPage'
-import { RegisterPage } from '../pages/RegisterPage'
-import { EventAuditPage } from '../pages/organizer/EventAuditPage'
-import { EventCreatePage } from '../pages/organizer/EventCreatePage'
-import { EventEditPage } from '../pages/organizer/EventEditPage'
-import { OrganizerEventsPage } from '../pages/organizer/OrganizerEventsPage'
-import { TicketDetailsPage } from '../pages/tickets/TicketDetailsPage'
+import {
+  EventAuditPage,
+  EventCreatePage,
+  EventDetailsPage,
+  EventEditPage,
+  HomePage,
+  LoginPage,
+  MyTicketsPage,
+  NotFoundPage,
+  OrganizerEventsPage,
+  RegisterPage,
+  TicketDetailsPage,
+} from './lazyPages'
 
 export const router = createBrowserRouter([
   {
