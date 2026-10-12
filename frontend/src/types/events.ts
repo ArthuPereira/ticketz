@@ -28,3 +28,18 @@ export interface EventListParams {
   limit: number
   offset: number
 }
+
+export interface EventCreatePayload {
+  nome: string
+  descricao: string | null
+  local: string
+  data: string
+  total_ingressos: number
+}
+
+export interface EventUpdatePayload {
+  nome?: string
+  descricao?: string | null
+  local?: string
+  data?: string
+}

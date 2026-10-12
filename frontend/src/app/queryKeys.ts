@@ -1,6 +1,9 @@
 export const eventKeys = {
   all: ['events'] as const,
   detail: (eventId: number) => ['events', 'detail', eventId] as const,
+  organizerLists: () => ['events', 'organizer'] as const,
+  organizerList: (limit: number, offset: number) =>
+    ['events', 'organizer', { limit, offset }] as const,
   publicList: (limit: number, offset: number) =>
     ['events', 'public', { limit, offset }] as const,
 }
