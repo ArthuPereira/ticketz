@@ -9,6 +9,7 @@ import { Alert } from '../components/common/Alert'
 import { Button } from '../components/common/Button'
 import { useAuth } from '../hooks/useAuth'
 import { getApiFieldErrors, getUserErrorMessage } from '../utils/errors'
+import { consumeAuthSessionExpiredNotice } from '../utils/storage'
 import styles from './AuthPage.module.css'
 
 const loginSchema = z.object({
@@ -32,6 +33,7 @@ export function LoginPage() {
   const location = useLocation()
   const navigate = useNavigate()
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [sessionExpired] = useState(consumeAuthSessionExpiredNotice)
   const state = location.state as LoginLocationState | null
   const {
     formState: { errors, isSubmitting },
@@ -84,6 +86,9 @@ export function LoginPage() {
         <form className={styles.form} noValidate onSubmit={handleSubmit(onSubmit)}>
           {state?.registrationSuccess && (
             <Alert variant="success">Conta criada. Agora entre com seus dados.</Alert>
+          )}
+          {sessionExpired && (
+            <Alert variant="error">Sua sessão expirou. Entre novamente.</Alert>
           )}
           {submitError && <Alert variant="error">{submitError}</Alert>}
 

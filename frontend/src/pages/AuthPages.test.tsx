@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ApiError } from '../api/client'
+import { expireAuthSession } from '../utils/storage'
 import { LoginPage } from './LoginPage'
 import { RegisterPage } from './RegisterPage'
 
@@ -111,6 +112,20 @@ describe('LoginPage', () => {
     expect(await screen.findByText('Informe seu e-mail.')).toBeInTheDocument()
     expect(screen.getByText('Informe sua senha.')).toBeInTheDocument()
     expect(authMocks.login).not.toHaveBeenCalled()
+  })
+
+  it('avisa quando o backend encerrou uma sessão expirada', () => {
+    expireAuthSession()
+
+    render(
+      <MemoryRouter>
+        <LoginPage />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Sua sessão expirou. Entre novamente.',
+    )
   })
 })
 

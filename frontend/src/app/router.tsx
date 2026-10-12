@@ -1,5 +1,7 @@
 import { createBrowserRouter } from 'react-router-dom'
 
+import { OrganizerRoute } from '../auth/OrganizerRoute'
+import { ProtectedRoute } from '../auth/ProtectedRoute'
 import { AppShell } from '../components/layout/AppShell'
 import { EventDetailsPage } from '../pages/EventDetailsPage'
 import { HomePage } from '../pages/HomePage'
@@ -21,12 +23,28 @@ export const router = createBrowserRouter([
       { path: 'eventos/:id', element: <EventDetailsPage /> },
       { path: 'login', element: <LoginPage /> },
       { path: 'cadastro', element: <RegisterPage /> },
-      { path: 'meus-ingressos', element: <MyTicketsPage /> },
-      { path: 'meus-ingressos/:id', element: <TicketDetailsPage /> },
-      { path: 'organizador/eventos', element: <OrganizerEventsPage /> },
-      { path: 'organizador/eventos/novo', element: <EventCreatePage /> },
-      { path: 'organizador/eventos/:id/editar', element: <EventEditPage /> },
-      { path: 'organizador/eventos/:id/logs', element: <EventAuditPage /> },
+      {
+        element: <ProtectedRoute />,
+        children: [
+          { path: 'meus-ingressos', element: <MyTicketsPage /> },
+          { path: 'meus-ingressos/:id', element: <TicketDetailsPage /> },
+          {
+            element: <OrganizerRoute />,
+            children: [
+              { path: 'organizador/eventos', element: <OrganizerEventsPage /> },
+              { path: 'organizador/eventos/novo', element: <EventCreatePage /> },
+              {
+                path: 'organizador/eventos/:id/editar',
+                element: <EventEditPage />,
+              },
+              {
+                path: 'organizador/eventos/:id/logs',
+                element: <EventAuditPage />,
+              },
+            ],
+          },
+        ],
+      },
       { path: '*', element: <NotFoundPage /> },
     ],
   },
