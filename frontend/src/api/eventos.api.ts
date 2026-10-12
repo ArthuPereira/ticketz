@@ -1,5 +1,5 @@
 import type { ApiResponse } from '../types/api'
-import type { EventListParams, EventPage } from '../types/events'
+import type { Event, EventListParams, EventPage } from '../types/events'
 import { apiRequest } from './client'
 
 export const EVENTS_PAGE_SIZE = 12
@@ -14,4 +14,11 @@ export function listEvents(
   })
 
   return apiRequest<EventPage>(`/eventos?${searchParams.toString()}`, { signal })
+}
+
+export function getEvent(
+  eventId: number,
+  signal?: AbortSignal,
+): Promise<ApiResponse<Event>> {
+  return apiRequest<Event>(`/eventos/${eventId}`, { signal })
 }

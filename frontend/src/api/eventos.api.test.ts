@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { EventPage } from '../types/events'
 import { getCacheStats } from './cache.api'
-import { EVENTS_PAGE_SIZE, listEvents } from './eventos.api'
+import { EVENTS_PAGE_SIZE, getEvent, listEvents } from './eventos.api'
 
 const fetchMock = vi.fn<typeof fetch>()
 
@@ -75,5 +75,25 @@ describe('API da vitrine de eventos', () => {
     expect(fetchMock.mock.calls[0][0]).toBe(
       'https://api.ticketz.test/cache/stats',
     )
+  })
+
+  it('obtém o detalhe e preserva o diagnóstico de cache', async () => {
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ id: 42, meu_ingresso: null }), {
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Cache': 'HIT',
+        },
+        status: 200,
+      }),
+    )
+
+    const result = await getEvent(42)
+
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      'https://api.ticketz.test/eventos/42',
+    )
+    expect(result.cacheStatus).toBe('HIT')
+    expect(result.data).toMatchObject({ id: 42, meu_ingresso: null })
   })
 })

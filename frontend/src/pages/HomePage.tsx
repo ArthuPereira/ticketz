@@ -10,6 +10,7 @@ import { Link } from 'react-router-dom'
 import { useState } from 'react'
 
 import { EVENTS_PAGE_SIZE, listEvents } from '../api/eventos.api'
+import { eventKeys } from '../app/queryKeys'
 import { EmptyState } from '../components/common/EmptyState'
 import { ErrorState } from '../components/common/ErrorState'
 import { Pagination } from '../components/common/Pagination'
@@ -44,7 +45,7 @@ export function HomePage() {
     queryFn: ({ signal }) =>
       listEvents({ limit: EVENTS_PAGE_SIZE, offset }, signal),
     placeholderData: keepPreviousData,
-    queryKey: ['events', 'public', { limit: EVENTS_PAGE_SIZE, offset }],
+    queryKey: eventKeys.publicList(EVENTS_PAGE_SIZE, offset),
   })
   const eventPage = eventQuery.data?.data
   const totalPages = eventPage
