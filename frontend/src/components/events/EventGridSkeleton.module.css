@@ -1,0 +1,37 @@
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.image {
+  aspect-ratio: 16 / 9;
+  border-radius: 0;
+}
+
+.content {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-5);
+}
+
+.title {
+  height: 1.6rem;
+  width: 72%;
+}
+
+.line,
+.lineShort {
+  height: 1rem;
+}
+
+.lineShort {
+  width: 65%;
+}
+
+.action {
+  height: 1rem;
+  margin-top: var(--space-3);
+  width: 30%;
+}

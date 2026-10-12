@@ -1,0 +1,24 @@
+.state {
+  align-items: flex-start;
+  background: #fff7f7;
+  border: 1px solid #fecdd3;
+  border-radius: var(--radius-lg);
+  display: flex;
+  gap: var(--space-4);
+  padding: var(--space-6);
+}
+
+.icon {
+  color: var(--color-danger);
+  flex: 0 0 auto;
+}
+
+.content h3,
+.content p {
+  margin: 0;
+}
+
+.content p {
+  color: var(--color-text-muted);
+  margin: var(--space-1) 0 var(--space-4);
+}

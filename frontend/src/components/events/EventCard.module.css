@@ -1,0 +1,107 @@
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  transition:
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.imageWrapper {
+  aspect-ratio: 16 / 9;
+  background: var(--color-surface-muted);
+  overflow: hidden;
+  position: relative;
+}
+
+.image {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.availability {
+  align-items: center;
+  border-radius: 999px;
+  bottom: var(--space-3);
+  display: inline-flex;
+  font-size: var(--font-size-xs);
+  font-weight: 800;
+  gap: var(--space-1);
+  left: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  position: absolute;
+}
+
+.available {
+  background: #ecfdf5;
+  color: var(--color-success);
+}
+
+.soldOut {
+  background: #fff1f2;
+  color: var(--color-danger);
+}
+
+.content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: var(--space-5);
+}
+
+.content h3 {
+  font-size: var(--font-size-xl);
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.details {
+  display: grid;
+  gap: var(--space-3);
+  margin: var(--space-5) 0;
+}
+
+.details div {
+  align-items: flex-start;
+  display: grid;
+  gap: var(--space-2);
+  grid-template-columns: 1.25rem minmax(0, 1fr);
+}
+
+.details dt {
+  color: var(--color-brand-700);
+}
+
+.details dd {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.link {
+  align-self: flex-start;
+  font-weight: 800;
+  margin-top: auto;
+}
+
+.visuallyHidden {
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}

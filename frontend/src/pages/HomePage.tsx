@@ -1,12 +1,19 @@
+import { useQuery } from '@tanstack/react-query'
 import {
   ArrowRight,
-  CalendarDays,
+  CalendarX,
   CloudCog,
   DatabaseZap,
   TicketCheck,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
+import { EVENTS_PAGE_SIZE, listEvents } from '../api/eventos.api'
+import { EmptyState } from '../components/common/EmptyState'
+import { ErrorState } from '../components/common/ErrorState'
+import { EventGrid } from '../components/events/EventGrid'
+import { EventGridSkeleton } from '../components/events/EventGridSkeleton'
+import { getUserErrorMessage } from '../utils/errors'
 import styles from './HomePage.module.css'
 
 const cloudFeatures = [
@@ -28,6 +35,13 @@ const cloudFeatures = [
 ]
 
 export function HomePage() {
+  const eventQuery = useQuery({
+    queryFn: ({ signal }) =>
+      listEvents({ limit: EVENTS_PAGE_SIZE, offset: 0 }, signal),
+    queryKey: ['events', 'public', { limit: EVENTS_PAGE_SIZE, offset: 0 }],
+  })
+  const eventPage = eventQuery.data?.data
+
   return (
     <>
       <section className={styles.hero}>
@@ -83,17 +97,42 @@ export function HomePage() {
         className={styles.eventsSection}
         id="proximos-eventos"
       >
-        <div className={styles.sectionHeading}>
-          <p className={styles.eyebrow}>Vitrine Ticketz</p>
-          <h2 id="events-title">Próximos eventos</h2>
-        </div>
-        <div className={styles.foundationState}>
-          <CalendarDays aria-hidden="true" size={30} />
-          <div>
-            <strong>A vitrine está sendo preparada</strong>
-            <p>Em breve, os eventos ativos aparecerão aqui.</p>
+        <div className={styles.eventsHeading}>
+          <div className={styles.sectionHeading}>
+            <p className={styles.eyebrow}>Vitrine Ticketz</p>
+            <h2 id="events-title">Próximos eventos</h2>
           </div>
+          {eventPage && eventPage.total > 0 && (
+            <p className={styles.resultCount}>
+              {eventPage.total} {eventPage.total === 1 ? 'evento encontrado' : 'eventos encontrados'}
+            </p>
+          )}
         </div>
+
+        {eventQuery.isPending && <EventGridSkeleton />}
+
+        {eventQuery.isError && (
+          <ErrorState
+            description={getUserErrorMessage(eventQuery.error)}
+            onRetry={() => void eventQuery.refetch()}
+            title="Não foi possível carregar os eventos"
+          />
+        )}
+
+        {eventPage?.items.length === 0 && (
+          <EmptyState
+            description="Volte em breve para descobrir novas experiências."
+            icon={CalendarX}
+            title="Nenhum evento disponível no momento"
+          />
+        )}
+
+        {eventPage && eventPage.items.length > 0 && (
+          <EventGrid
+            events={eventPage.items}
+            isRefreshing={eventQuery.isFetching}
+          />
+        )}
       </section>
     </>
   )
