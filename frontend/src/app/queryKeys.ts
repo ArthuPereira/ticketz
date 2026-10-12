@@ -1,5 +1,6 @@
 export const eventKeys = {
   all: ['events'] as const,
+  audit: (eventId: number) => ['events', 'audit', eventId] as const,
   detail: (eventId: number) => ['events', 'detail', eventId] as const,
   organizerLists: () => ['events', 'organizer'] as const,
   organizerList: (limit: number, offset: number) =>

@@ -1,5 +1,9 @@
 import type { ApiResponse } from '../types/api'
 import type {
+  ActionLogListParams,
+  ActionLogPage,
+} from '../types/audit'
+import type {
   Event,
   EventCreatePayload,
   EventListParams,
@@ -10,6 +14,7 @@ import { apiRequest } from './client'
 
 export const EVENTS_PAGE_SIZE = 12
 export const ORGANIZER_EVENTS_PAGE_SIZE = 20
+export const EVENT_AUDIT_PAGE_SIZE = 20
 
 export function listEvents(
   { limit, offset }: EventListParams,
@@ -83,4 +88,21 @@ export async function uploadEventBanner(
 
 export async function deactivateEvent(eventId: number): Promise<void> {
   await apiRequest(`/eventos/${eventId}`, { method: 'DELETE' })
+}
+
+export async function listEventAuditLogs(
+  eventId: number,
+  { cursor, limit }: ActionLogListParams,
+  signal?: AbortSignal,
+): Promise<ActionLogPage> {
+  const searchParams = new URLSearchParams({ limit: String(limit) })
+  if (cursor) {
+    searchParams.set('cursor', cursor)
+  }
+  const response = await apiRequest<ActionLogPage>(
+    `/eventos/${eventId}/logs?${searchParams.toString()}`,
+    { signal },
+  )
+
+  return response.data
 }

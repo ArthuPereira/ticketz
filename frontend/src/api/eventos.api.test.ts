@@ -5,9 +5,11 @@ import { getCacheStats } from './cache.api'
 import {
   createEvent,
   deactivateEvent,
+  EVENT_AUDIT_PAGE_SIZE,
   EVENTS_PAGE_SIZE,
   getEvent,
   listEvents,
+  listEventAuditLogs,
   listOrganizerEvents,
   updateEvent,
   uploadEventBanner,
@@ -190,5 +192,39 @@ describe('API da vitrine de eventos', () => {
     await expect(deactivateEvent(42)).resolves.toBeUndefined()
     expect(fetchMock.mock.calls[0][0]).toBe('https://api.ticketz.test/eventos/42')
     expect(fetchMock.mock.calls[0][1]?.method).toBe('DELETE')
+  })
+
+  it('consulta a primeira página de logs sem fabricar cursor', async () => {
+    const page = { cursor: 'next-page', items: [] }
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify(page), {
+        headers: { 'Content-Type': 'application/json' },
+        status: 200,
+      }),
+    )
+
+    await expect(
+      listEventAuditLogs(42, { limit: EVENT_AUDIT_PAGE_SIZE }),
+    ).resolves.toEqual(page)
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      'https://api.ticketz.test/eventos/42/logs?limit=20',
+    )
+  })
+
+  it('codifica e envia o cursor devolvido pelo backend na página seguinte', async () => {
+    const page = { cursor: null, items: [] }
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify(page), {
+        headers: { 'Content-Type': 'application/json' },
+        status: 200,
+      }),
+    )
+    const cursor = 'eyJlbnRpZGFkZSI6ICJldmVudG8jNDIifQ=='
+
+    await listEventAuditLogs(42, { cursor, limit: 20 })
+
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      `https://api.ticketz.test/eventos/42/logs?limit=20&cursor=${encodeURIComponent(cursor)}`,
+    )
   })
 })
