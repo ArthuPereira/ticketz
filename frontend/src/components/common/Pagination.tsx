@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import styles from './Pagination.module.css'
 
 interface PaginationProps {
+  ariaLabel?: string
   currentPage: number
   disabled?: boolean
   onPageChange(page: number): void
@@ -10,6 +11,7 @@ interface PaginationProps {
 }
 
 export function Pagination({
+  ariaLabel = 'Paginação dos eventos',
   currentPage,
   disabled = false,
   onPageChange,
@@ -20,7 +22,7 @@ export function Pagination({
   }
 
   return (
-    <nav aria-label="Paginação dos eventos" className={styles.pagination}>
+    <nav aria-label={ariaLabel} className={styles.pagination}>
       <button
         aria-label="Ir para a página anterior"
         className={styles.button}
