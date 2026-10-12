@@ -111,7 +111,38 @@ describe('LoginPage', () => {
 
     expect(await screen.findByText('Informe seu e-mail.')).toBeInTheDocument()
     expect(screen.getByText('Informe sua senha.')).toBeInTheDocument()
+    expect(screen.getByLabelText('E-mail')).toHaveFocus()
     expect(authMocks.login).not.toHaveBeenCalled()
+  })
+
+  it('move o foco para o primeiro campo rejeitado pela API', async () => {
+    authMocks.login.mockRejectedValue(
+      new ApiError(
+        422,
+        [
+          { loc: ['body', 'email'], msg: 'Revise o e-mail.', type: 'value_error' },
+          { loc: ['body', 'senha'], msg: 'Revise a senha.', type: 'value_error' },
+        ],
+        'Dados inválidos',
+      ),
+    )
+
+    render(
+      <MemoryRouter>
+        <LoginPage />
+      </MemoryRouter>,
+    )
+
+    await fillLoginForm()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Revise o e-mail.')
+    expect(screen.getByLabelText('E-mail')).toHaveFocus()
+    expect(screen.getByLabelText('E-mail')).toHaveAccessibleDescription(
+      'Revise o e-mail.',
+    )
+    expect(screen.getByLabelText('Senha')).toHaveAccessibleDescription(
+      'Revise a senha.',
+    )
   })
 
   it('avisa quando o backend encerrou uma sessão expirada', () => {

@@ -19,6 +19,7 @@ export function Alert({ children, variant = 'info' }: AlertProps) {
 
   return (
     <div
+      aria-atomic="true"
       aria-live={variant === 'error' ? 'assertive' : 'polite'}
       className={`${styles.alert} ${styles[variant]}`}
       role={variant === 'error' ? 'alert' : 'status'}

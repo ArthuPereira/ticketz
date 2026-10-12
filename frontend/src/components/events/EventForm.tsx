@@ -127,6 +127,7 @@ export function EventForm({
       setBanner(null)
     } catch (error) {
       const fieldErrors = getApiFieldErrors(error)
+      let shouldFocus = true
       Object.entries(fieldErrors).forEach(([field, message]) => {
         if (
           field === 'nome' ||
@@ -135,7 +136,8 @@ export function EventForm({
           field === 'data' ||
           field === 'total_ingressos'
         ) {
-          setError(field, { message, type: 'server' })
+          setError(field, { message, type: 'server' }, { shouldFocus })
+          shouldFocus = false
         }
       })
       setSubmitError(getUserErrorMessage(error))
@@ -205,13 +207,12 @@ export function EventForm({
         <div className={styles.field}>
           <label htmlFor="event-total">Total de ingressos</label>
           <input
-            aria-describedby={
-              mode === 'edit'
-                ? 'event-total-help'
-                : errors.total_ingressos
-                  ? 'event-total-error'
-                  : undefined
-            }
+            aria-describedby={[
+              mode === 'edit' ? 'event-total-help' : null,
+              errors.total_ingressos ? 'event-total-error' : null,
+            ]
+              .filter(Boolean)
+              .join(' ') || undefined}
             aria-invalid={Boolean(errors.total_ingressos)}
             id="event-total"
             inputMode="numeric"

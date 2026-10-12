@@ -33,6 +33,7 @@ describe('EventForm', () => {
     expect(screen.getByText('Informe o local do evento.')).toBeInTheDocument()
     expect(screen.getByText('Informe a data e a hora do evento.')).toBeInTheDocument()
     expect(screen.getByText('Informe o total de ingressos.')).toBeInTheDocument()
+    expect(screen.getByLabelText('Nome')).toHaveFocus()
     expect(onSubmit).not.toHaveBeenCalled()
   })
 

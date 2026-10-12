@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useId, useRef } from 'react'
 import type { KeyboardEvent, ReactNode } from 'react'
 
 import { Button } from './Button'
@@ -25,6 +25,8 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   const cancelButtonRef = useRef<HTMLButtonElement>(null)
   const confirmButtonRef = useRef<HTMLButtonElement>(null)
+  const descriptionId = useId()
+  const titleId = useId()
 
   useEffect(() => {
     if (!open) {
@@ -32,7 +34,7 @@ export function ConfirmDialog({
     }
 
     const previouslyFocused = document.activeElement as HTMLElement | null
-    confirmButtonRef.current?.focus()
+    cancelButtonRef.current?.focus()
     return () => previouslyFocused?.focus()
   }, [open])
 
@@ -70,14 +72,15 @@ export function ConfirmDialog({
       }}
     >
       <div
-        aria-describedby="confirm-dialog-description"
-        aria-labelledby="confirm-dialog-title"
+        aria-busy={isLoading || undefined}
+        aria-describedby={descriptionId}
+        aria-labelledby={titleId}
         aria-modal="true"
         className={styles.dialog}
         role="dialog"
       >
-        <h2 id="confirm-dialog-title">{title}</h2>
-        <div className={styles.description} id="confirm-dialog-description">
+        <h2 id={titleId}>{title}</h2>
+        <div className={styles.description} id={descriptionId}>
           {children}
         </div>
         <div className={styles.actions}>

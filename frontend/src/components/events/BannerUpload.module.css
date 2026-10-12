@@ -82,8 +82,9 @@
 }
 
 .fileInput:focus-visible + .fileButton {
-  outline: 3px solid var(--color-accent);
-  outline-offset: 3px;
+  box-shadow: 0 0 0 5px var(--color-focus);
+  outline: 3px solid var(--color-white);
+  outline-offset: 2px;
 }
 
 .help,

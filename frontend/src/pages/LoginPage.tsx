@@ -55,9 +55,11 @@ export function LoginPage() {
       navigate(destination, { replace: true })
     } catch (error) {
       const fieldErrors = getApiFieldErrors(error)
+      let shouldFocus = true
       Object.entries(fieldErrors).forEach(([field, message]) => {
         if (field === 'email' || field === 'senha') {
-          setError(field, { message, type: 'server' })
+          setError(field, { message, type: 'server' }, { shouldFocus })
+          shouldFocus = false
         }
       })
       setSubmitError(getUserErrorMessage(error, 'login'))

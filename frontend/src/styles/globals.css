@@ -10,14 +10,14 @@ html {
   font-family: var(--font-family-sans);
   font-size: 100%;
   line-height: 1.6;
-  min-width: 20rem;
   scroll-behavior: smooth;
   text-rendering: optimizeLegibility;
 }
 
 body {
   margin: 0;
-  min-width: 20rem;
+  min-width: 0;
+  overflow-wrap: break-word;
 }
 
 button,
@@ -37,8 +37,9 @@ a {
 }
 
 :focus-visible {
-  outline: 3px solid var(--color-accent);
-  outline-offset: 3px;
+  box-shadow: 0 0 0 5px var(--color-focus);
+  outline: 3px solid var(--color-white);
+  outline-offset: 2px;
 }
 
 h1,

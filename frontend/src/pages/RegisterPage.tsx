@@ -52,9 +52,11 @@ export function RegisterPage() {
       })
     } catch (error) {
       const fieldErrors = getApiFieldErrors(error)
+      let shouldFocus = true
       Object.entries(fieldErrors).forEach(([field, message]) => {
         if (field === 'nome' || field === 'email' || field === 'senha' || field === 'papel') {
-          setError(field, { message, type: 'server' })
+          setError(field, { message, type: 'server' }, { shouldFocus })
+          shouldFocus = false
         }
       })
       setSubmitError(getUserErrorMessage(error))
@@ -135,7 +137,11 @@ export function RegisterPage() {
             )}
           </div>
 
-          <fieldset className={styles.roleGroup}>
+          <fieldset
+            aria-describedby={errors.papel ? 'register-role-error' : undefined}
+            aria-invalid={Boolean(errors.papel)}
+            className={styles.roleGroup}
+          >
             <legend className={styles.legend}>Como você usará o Ticketz?</legend>
             <div className={styles.roleOptions}>
               <label className={styles.roleOption}>
@@ -153,7 +159,11 @@ export function RegisterPage() {
                 </span>
               </label>
             </div>
-            {errors.papel && <p className={styles.fieldError}>{errors.papel.message}</p>}
+            {errors.papel && (
+              <p className={styles.fieldError} id="register-role-error">
+                {errors.papel.message}
+              </p>
+            )}
           </fieldset>
 
           <Button

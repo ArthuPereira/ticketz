@@ -12,6 +12,10 @@
   width: 100%;
 }
 
+.main:focus-visible {
+  border-radius: var(--radius-sm);
+}
+
 .skipLink {
   background: var(--color-brand-800);
   border-radius: 0 0 var(--radius-md) 0;
@@ -28,4 +32,10 @@
 
 .skipLink:focus {
   transform: translateY(0);
+}
+
+@media (max-width: 30rem) {
+  .main {
+    padding-top: var(--space-5);
+  }
 }
