@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:production": "npm run build && node scripts/verify-production-build.mjs",
+    "deploy:aws": "bash scripts/deploy-aws.sh",
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run --passWithNoTests",
