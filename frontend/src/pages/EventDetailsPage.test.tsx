@@ -14,12 +14,14 @@ import { TicketDetailsPage } from './tickets/TicketDetailsPage'
 
 const detailMocks = vi.hoisted(() => ({
   getEvent: vi.fn(),
+  getTicket: vi.fn(),
   purchaseTicket: vi.fn(),
   useAuth: vi.fn(),
 }))
 
 vi.mock('../api/eventos.api', () => ({ getEvent: detailMocks.getEvent }))
 vi.mock('../api/ingressos.api', () => ({
+  getTicket: detailMocks.getTicket,
   purchaseTicket: detailMocks.purchaseTicket,
 }))
 vi.mock('../hooks/useAuth', () => ({ useAuth: detailMocks.useAuth }))
@@ -87,9 +89,11 @@ describe('EventDetailsPage', () => {
   beforeEach(() => {
     vi.stubEnv('VITE_SHOW_CACHE_DEBUG', 'false')
     detailMocks.getEvent.mockReset()
+    detailMocks.getTicket.mockReset()
     detailMocks.purchaseTicket.mockReset()
     detailMocks.useAuth.mockReset()
     detailMocks.useAuth.mockReturnValue({ isAuthenticated: false })
+    detailMocks.getTicket.mockResolvedValue(ticket)
   })
 
   afterEach(() => {
