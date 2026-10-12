@@ -9,4 +9,6 @@ export const ticketKeys = {
   all: ['tickets'] as const,
   detail: (ticketId: number) => ['tickets', 'detail', ticketId] as const,
   lists: () => ['tickets', 'list'] as const,
+  list: (limit: number, offset: number) =>
+    ['tickets', 'list', { limit, offset }] as const,
 }

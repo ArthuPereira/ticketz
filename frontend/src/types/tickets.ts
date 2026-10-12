@@ -19,3 +19,20 @@ export interface Ticket {
   pronto_em: string | null
   evento: TicketEventSummary
 }
+
+export interface TicketPage {
+  items: Ticket[]
+  total: number
+  limit: number
+  offset: number
+}
+
+export interface TicketListParams {
+  limit: number
+  offset: number
+}
+
+export interface TicketDownload {
+  url: string
+  expira_em: number
+}
