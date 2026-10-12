@@ -12,8 +12,9 @@
   width: 100%;
 }
 
-.main:focus-visible {
-  border-radius: var(--radius-sm);
+.main:focus {
+  box-shadow: none;
+  outline: none;
 }
 
 .skipLink {
