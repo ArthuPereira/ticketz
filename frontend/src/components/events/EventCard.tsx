@@ -1,35 +1,13 @@
 import { CalendarDays, MapPin, Ticket, TicketX } from 'lucide-react'
-import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import type { Event } from '../../types/events'
 import { formatEventDate } from '../../utils/date'
+import { EVENT_BANNER_PLACEHOLDER, EventBanner } from './EventBanner'
 import styles from './EventCard.module.css'
 
 interface EventCardProps {
   event: Event
-}
-
-interface EventImageProps {
-  name: string
-  source: string | null
-}
-
-const EVENT_PLACEHOLDER = '/event-placeholder.svg'
-
-function EventImage({ name, source }: EventImageProps) {
-  const [hasError, setHasError] = useState(false)
-  const imageSource = source && !hasError ? source : EVENT_PLACEHOLDER
-
-  return (
-    <img
-      alt={source && !hasError ? `Banner do evento ${name}` : ''}
-      className={styles.image}
-      loading="lazy"
-      onError={() => setHasError(true)}
-      src={imageSource}
-    />
-  )
 }
 
 export function EventCard({ event }: EventCardProps) {
@@ -38,7 +16,13 @@ export function EventCard({ event }: EventCardProps) {
   return (
     <article className={styles.card}>
       <div className={styles.imageWrapper}>
-        <EventImage key={event.banner_url ?? EVENT_PLACEHOLDER} name={event.nome} source={event.banner_url} />
+        <EventBanner
+          className={styles.image}
+          key={event.banner_url ?? EVENT_BANNER_PLACEHOLDER}
+          loading="lazy"
+          name={event.nome}
+          source={event.banner_url}
+        />
         <span className={`${styles.availability} ${soldOut ? styles.soldOut : styles.available}`}>
           {soldOut ? <TicketX aria-hidden="true" size={16} /> : <Ticket aria-hidden="true" size={16} />}
           {soldOut ? 'Esgotado' : `${event.ingressos_disponiveis} disponíveis`}

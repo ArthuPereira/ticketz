@@ -1,0 +1,55 @@
+.backdrop {
+  align-items: center;
+  background: rgb(20 14 35 / 72%);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: var(--space-4);
+  position: fixed;
+  z-index: 100;
+}
+
+.dialog {
+  background: var(--color-surface);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+  max-height: calc(100vh - 2rem);
+  max-width: 32rem;
+  overflow-y: auto;
+  padding: var(--space-6);
+  width: 100%;
+}
+
+.dialog h2 {
+  margin: 0;
+}
+
+.description {
+  color: var(--color-text-muted);
+  margin-top: var(--space-4);
+}
+
+.description p {
+  margin: 0;
+}
+
+.description p + p {
+  margin-top: var(--space-3);
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: flex-end;
+  margin-top: var(--space-6);
+}
+
+@media (max-width: 30rem) {
+  .actions {
+    flex-direction: column-reverse;
+  }
+
+  .actions button {
+    width: 100%;
+  }
+}

@@ -1,0 +1,12 @@
+.page {
+  margin: var(--space-6) auto 0;
+  max-width: 44rem;
+}
+
+.page > span {
+  margin-top: var(--space-4);
+}
+
+.page section {
+  margin-top: var(--space-6);
+}
