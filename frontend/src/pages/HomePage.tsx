@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import {
   ArrowRight,
   CalendarX,
@@ -7,10 +7,13 @@ import {
   TicketCheck,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { useState } from 'react'
 
 import { EVENTS_PAGE_SIZE, listEvents } from '../api/eventos.api'
 import { EmptyState } from '../components/common/EmptyState'
 import { ErrorState } from '../components/common/ErrorState'
+import { Pagination } from '../components/common/Pagination'
+import { CacheDebug } from '../components/events/CacheDebug'
 import { EventGrid } from '../components/events/EventGrid'
 import { EventGridSkeleton } from '../components/events/EventGridSkeleton'
 import { getUserErrorMessage } from '../utils/errors'
@@ -35,12 +38,19 @@ const cloudFeatures = [
 ]
 
 export function HomePage() {
+  const [currentPage, setCurrentPage] = useState(1)
+  const offset = (currentPage - 1) * EVENTS_PAGE_SIZE
   const eventQuery = useQuery({
     queryFn: ({ signal }) =>
-      listEvents({ limit: EVENTS_PAGE_SIZE, offset: 0 }, signal),
-    queryKey: ['events', 'public', { limit: EVENTS_PAGE_SIZE, offset: 0 }],
+      listEvents({ limit: EVENTS_PAGE_SIZE, offset }, signal),
+    placeholderData: keepPreviousData,
+    queryKey: ['events', 'public', { limit: EVENTS_PAGE_SIZE, offset }],
   })
   const eventPage = eventQuery.data?.data
+  const totalPages = eventPage
+    ? Math.ceil(eventPage.total / EVENTS_PAGE_SIZE)
+    : 0
+  const showCacheDebug = import.meta.env.VITE_SHOW_CACHE_DEBUG === 'true'
 
   return (
     <>
@@ -109,6 +119,10 @@ export function HomePage() {
           )}
         </div>
 
+        {showCacheDebug && !eventQuery.isError && eventQuery.data && (
+          <CacheDebug status={eventQuery.data.cacheStatus} />
+        )}
+
         {eventQuery.isPending && <EventGridSkeleton />}
 
         {eventQuery.isError && (
@@ -119,7 +133,7 @@ export function HomePage() {
           />
         )}
 
-        {eventPage?.items.length === 0 && (
+        {!eventQuery.isError && eventPage?.items.length === 0 && (
           <EmptyState
             description="Volte em breve para descobrir novas experiências."
             icon={CalendarX}
@@ -127,11 +141,19 @@ export function HomePage() {
           />
         )}
 
-        {eventPage && eventPage.items.length > 0 && (
-          <EventGrid
-            events={eventPage.items}
-            isRefreshing={eventQuery.isFetching}
-          />
+        {!eventQuery.isError && eventPage && eventPage.items.length > 0 && (
+          <>
+            <EventGrid
+              events={eventPage.items}
+              isRefreshing={eventQuery.isFetching}
+            />
+            <Pagination
+              currentPage={currentPage}
+              disabled={eventQuery.isFetching}
+              onPageChange={setCurrentPage}
+              totalPages={totalPages}
+            />
+          </>
         )}
       </section>
     </>
