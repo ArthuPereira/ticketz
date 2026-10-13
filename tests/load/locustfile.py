@@ -71,21 +71,29 @@ class Comprador(HttpUser):
         self.client.get("/health", name="/health")
 
 
-class AutoScalingShape(LoadTestShape):
-    """Shape com perfil calibrado para elevar a CPU da t3.micro acima de 70% por > 1 minuto
-    e disparar o scale out de 1 para 2 instâncias no ASG.
-    """
+# NOTA: Quando uma classe LoadTestShape esta ativa no arquivo, o Locust desativa os
+# campos de "Number of users" e "Spawn rate" na interface Web (pois assume controle programatico).
+# Para permitir que voce preencha manualmente "250 usuarios" e "25 spawn rate" na interface Web
+# (conforme descrito no ROTEIRO_GRAVACAO_PARTE2.md), mantemos a classe comentada abaixo.
+#
+# Caso queira rodar o teste de forma 100% automatizada via CLI/headless, basta descomentar a classe abaixo.
+#
+# class AutoScalingShape(LoadTestShape):
+#     """Shape com perfil calibrado para elevar a CPU da t3.micro acima de 70% por > 1 minuto
+#     e disparar o scale out de 1 para 2 instâncias no ASG.
+#     """
+# 
+#     etapas = [
+#         # (tempo_acumulado_segundos, usuarios, taxa_spawn)
+#         (30, 50, 10),    # Aquecimento inicial (0 a 30s)
+#         (360, 250, 25),  # Carga de pico contínua: 250 usuários mantendo CPU > 70% por vários minutos
+#         (540, 0, 25),    # Redução da carga para observar estabilização / scale in
+#     ]
+# 
+#     def tick(self):
+#         run_time = self.get_run_time()
+#         for fim_tempo, usuarios, taxa in self.etapas:
+#             if run_time < fim_tempo:
+#                 return (usuarios, taxa)
+#         return None
 
-    etapas = [
-        # (tempo_acumulado_segundos, usuarios, taxa_spawn)
-        (30, 50, 10),    # Aquecimento inicial (0 a 30s)
-        (360, 250, 25),  # Carga de pico contínua: 250 usuários mantendo CPU > 70% por vários minutos
-        (540, 0, 25),    # Redução da carga para observar estabilização / scale in
-    ]
-
-    def tick(self):
-        run_time = self.get_run_time()
-        for fim_tempo, usuarios, taxa in self.etapas:
-            if run_time < fim_tempo:
-                return (usuarios, taxa)
-        return None
