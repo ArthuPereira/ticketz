@@ -15,17 +15,20 @@ def _get_common_kwargs() -> dict[str, Any]:
         kwargs["aws_access_key_id"] = settings.AWS_ACCESS_KEY_ID
     if settings.AWS_SECRET_ACCESS_KEY:
         kwargs["aws_secret_access_key"] = settings.AWS_SECRET_ACCESS_KEY
+    if settings.AWS_SESSION_TOKEN:
+        kwargs["aws_session_token"] = settings.AWS_SESSION_TOKEN
     return kwargs
 
 
 @lru_cache
 def get_s3_client():
-    """Retorna cliente S3 configurado com addressing_style='path' para compatibilidade com MiniStack/LocalStack."""
+    """Retorna cliente S3. Usa addressing_style='path' apenas no MiniStack/LocalStack."""
     kwargs = _get_common_kwargs()
-    kwargs["config"] = Config(
-        s3={"addressing_style": "path"},
-        signature_version="s3v4",
-    )
+    if settings.AWS_ENDPOINT_URL:
+        kwargs["config"] = Config(
+            s3={"addressing_style": "path"},
+            signature_version="s3v4",
+        )
     return boto3.client("s3", **kwargs)
 
 

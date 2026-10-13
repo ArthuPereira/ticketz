@@ -62,8 +62,9 @@ class Settings(BaseSettings):
     # Configurações AWS
     AWS_REGION: str = "us-east-1"
     AWS_DEFAULT_REGION: str = "us-east-1"
-    AWS_ACCESS_KEY_ID: str = "test"
-    AWS_SECRET_ACCESS_KEY: str = "test"
+    AWS_ACCESS_KEY_ID: Optional[str] = None
+    AWS_SECRET_ACCESS_KEY: Optional[str] = None
+    AWS_SESSION_TOKEN: Optional[str] = None
     AWS_ENDPOINT_URL: Optional[str] = None
 
     # Auth & JWT

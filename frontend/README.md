@@ -40,26 +40,28 @@ Além de gerar `dist`, o comando confirma que:
 O arquivo `.env.production.example` documenta as variáveis sem armazenar o
 endereço real ou qualquer credencial.
 
-## Publicação no S3 e CloudFront
+## Publicação e Hospedagem na AWS
 
-Primeiro provisione o módulo em `../infra/frontend`. Depois exporte os outputs
-do Terraform e a URL HTTPS do backend:
+A interface Web pode ser entregue de duas formas:
 
+### 1. Entrega Direta via Load Balancer (Recomendada / Arquitetura Alvo)
+Atende ao **Requisito 1 da especificação** (*"A aplicação deve possuir uma interface Web (...) executada em uma instância na EC2"*).
+Os arquivos compilados de `dist/` são incorporados à Golden AMI e servidos diretamente pelo FastAPI nas instâncias EC2 sob o ALB:
+
+- **URL única**: `http://<ALB_DNS_NAME>/`
+- **Zero certificados**: funciona diretamente em HTTP padrão na porta 80.
+- **Zero CORS / Mixed Content**: frontend e API compartilham a mesma origem (`window.location.origin`).
+
+Para compilar para mesma origem:
+```bash
+npm run build
+```
+
+### 2. (Legado / Opcional) Hospedagem Estática em S3 + CloudFront
+Caso desejado para CDN global com HTTPS dedicado, o módulo em `../infra/frontend` pode ser provisionado:
 ```bash
 export FRONTEND_BUCKET="ticketz-frontend-nome-unico"
 export CLOUDFRONT_DISTRIBUTION_ID="E1234567890"
 export VITE_API_URL="https://api.example.com"
 npm run deploy:aws
 ```
-
-O script:
-
-1. valida as variáveis e a identidade da sessão AWS;
-2. gera e verifica o build de produção;
-3. publica arquivos versionados de `assets/` com cache imutável;
-4. publica `index.html` e demais arquivos sem cache persistente;
-5. solicita uma invalidação do CloudFront.
-
-O domínio HTTPS do CloudFront deve ser incluído em
-`CORS_ALLOWED_ORIGINS` no ambiente do backend. Credenciais, `.env` reais e
-arquivos `terraform.tfvars` nunca devem ser versionados.

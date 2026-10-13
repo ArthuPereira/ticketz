@@ -1,0 +1,48 @@
+#!/bin/bash
+set -e
+
+# Grava arquivo .env para a aplicacao com as URLs e endpoints reais provisionados
+cat << 'EOF' > /opt/ticketz/.env
+AWS_REGION=${aws_region}
+AWS_DEFAULT_REGION=${aws_region}
+
+# Banco de Dados (RDS PostgreSQL)
+DB_HOST=${db_host}
+DB_PORT=5432
+DB_NAME=${db_name}
+DB_USER=${db_user}
+DB_PASSWORD=${db_password}
+
+# Cache (ElastiCache Redis)
+CACHE_HOST=${cache_host}
+CACHE_PORT=6379
+
+# Serviços AWS
+S3_BUCKET=${s3_bucket}
+S3_BUCKET_BANNERS=${s3_bucket}
+S3_BUCKET_TICKETS=${s3_bucket}
+DYNAMODB_TABLE=${dynamodb_table}
+SNS_TOPIC_ARN=${sns_topic_arn}
+SQS_QUEUE_URL=${sqs_queue_url}
+SQS_MAX_RECEIVE_COUNT=3
+WORKER_DELAY_SECONDS=0
+
+# Auth & JWT
+SECRET_KEY=${jwt_secret_key}
+JWT_ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=480
+ALLOW_ORGANIZER_SIGNUP=true
+EOF
+
+chown ubuntu:ubuntu /opt/ticketz/.env
+chmod 600 /opt/ticketz/.env
+
+# Executa as migrações do Alembic contra o RDS PostgreSQL
+cd /opt/ticketz
+su - ubuntu -c "cd /opt/ticketz && /opt/ticketz/.venv/bin/alembic upgrade head"
+
+# Inicia e habilita os serviços no Systemd
+systemctl daemon-reload
+systemctl restart ticketz-api.service
+systemctl restart ticketz-worker.service
+

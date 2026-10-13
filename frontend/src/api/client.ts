@@ -23,8 +23,11 @@ export class ApiError extends Error implements ApiErrorData {
 function getApiBaseUrl(): string {
   const apiUrl = import.meta.env.VITE_API_URL?.trim()
 
-  if (!apiUrl) {
-    throw new Error('VITE_API_URL não foi configurada.')
+  if (!apiUrl || apiUrl === '/') {
+    if (typeof window !== 'undefined' && window.location?.origin) {
+      return window.location.origin
+    }
+    return ''
   }
 
   return apiUrl.replace(/\/+$/, '')
