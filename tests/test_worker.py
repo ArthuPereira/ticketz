@@ -1,31 +1,29 @@
 import asyncio
 from datetime import datetime, timedelta, timezone
-from io import BytesIO
 import json
 from unittest.mock import patch
 
-from botocore.exceptions import ClientError
+import aio_pika
 from fastapi import status
 import httpx
 from httpx import ASGITransport, AsyncClient
 import pytest
-from redis.exceptions import RedisError
 from sqlalchemy import select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
-from src.core.aws import get_dynamodb_resource, get_s3_client, get_sqs_client
+from src.core.action_log import ensure_dynamodb_table_sync
+from src.core.aws import get_dynamodb_resource, get_s3_client
 from src.core.cache import get_redis_client
 from src.core.database import get_db
 from src.core.models import Ingresso, StatusIngresso
+from src.core.queue import declare_rabbitmq_topology, publicar_ingresso, purgar_filas
 from src.core.settings import settings
 from src.main import app
 from worker.handler import (
     ErroPermanente,
     extrair_id,
     extrair_id_seguro,
-    marcar_failed,
-    marcar_ready,
     processar,
     set_worker_session_maker,
 )
@@ -33,7 +31,6 @@ from worker.pdf import DadosIngressoPDF, formatar_data, gerar_pdf, limpar_texto
 from worker.__main__ import (
     loop_worker,
     reconciliar_ingressos_orfaos,
-    tarefa_reconciliacao,
 )
 
 test_engine = create_async_engine(settings.database_url, poolclass=NullPool)
@@ -53,6 +50,7 @@ set_worker_session_maker(TestSessionLocal)
 
 def _limpar_dynamodb():
     try:
+        ensure_dynamodb_table_sync()
         dynamodb = get_dynamodb_resource()
         table = dynamodb.Table(settings.DYNAMODB_TABLE)
         scan = table.scan(ProjectionExpression="entidade, sk")
@@ -63,31 +61,25 @@ def _limpar_dynamodb():
         pass
 
 
-def _purgar_fila_sqs():
-    try:
-        sqs = get_sqs_client()
-        # Drena mensagens residuais da fila
+async def _ler_mensagens_fila(dlq: bool = False) -> list[str]:
+    """Lê mensagens disponíveis na fila principal (ou DLQ) do RabbitMQ para asserções em testes."""
+    mensagens: list[str] = []
+    connection = await aio_pika.connect_robust(settings.RABBITMQ_URL, timeout=5.0)
+    async with connection:
+        channel = await connection.channel()
+        _, queue, _, dlq_queue = await declare_rabbitmq_topology(channel)
+        alvo = dlq_queue if dlq else queue
         while True:
-            res = sqs.receive_message(
-                QueueUrl=settings.SQS_QUEUE_URL,
-                MaxNumberOfMessages=10,
-                WaitTimeSeconds=1,
-            )
-            msgs = res.get("Messages", [])
-            if not msgs:
+            msg = await alvo.get(no_ack=True, fail=False, timeout=1.0)
+            if msg is None:
                 break
-            for m in msgs:
-                sqs.delete_message(
-                    QueueUrl=settings.SQS_QUEUE_URL,
-                    ReceiptHandle=m["ReceiptHandle"],
-                )
-    except Exception:
-        pass
+            mensagens.append(msg.body.decode("utf-8"))
+    return mensagens
 
 
 @pytest.fixture(autouse=True)
 async def clean_database_cache_and_queue():
-    """Garante tabelas do Postgres, Redis, DynamoDB e fila SQS limpos antes e após cada teste."""
+    """Garante tabelas do Postgres, Valkey, DynamoDB e filas do RabbitMQ limpos antes e após cada teste."""
     async with TestSessionLocal() as session:
         await session.execute(
             text(
@@ -103,7 +95,7 @@ async def clean_database_cache_and_queue():
         pass
 
     _limpar_dynamodb()
-    _purgar_fila_sqs()
+    await purgar_filas()
 
     yield
 
@@ -121,7 +113,7 @@ async def clean_database_cache_and_queue():
         pass
 
     _limpar_dynamodb()
-    _purgar_fila_sqs()
+    await purgar_filas()
 
 
 async def criar_usuario_e_token(
@@ -195,17 +187,17 @@ def test_gerador_pdf_conteudo_e_formato():
     assert "17:00" in data_str
 
 
-def test_extracao_mensagem_sqs():
-    # Mensagem JSON direta (raw delivery)
+def test_extracao_mensagem_fila():
+    # Mensagem JSON direta
     assert extrair_id('{"ingresso_id": 42}') == 42
     assert extrair_id_seguro('{"ingresso_id": 42}') == 42
 
-    # Mensagem embrulhada pelo SNS
-    sns_envelope = json.dumps({
+    # Mensagem embrulhada (compatibilidade legada)
+    envelope = json.dumps({
         "Type": "Notification",
         "Message": json.dumps({"ingresso_id": 88}),
     })
-    assert extrair_id(sns_envelope) == 88
+    assert extrair_id(envelope) == 88
 
     # Mensagens inválidas geram ErroPermanente
     with pytest.raises(ErroPermanente):
@@ -252,7 +244,7 @@ async def test_processar_ingresso_sucesso_s3_e_dynamodb():
             assert ingresso_db.pdf_key == f"eventos/{evento['id']}/ingressos/{ing_id}.pdf"
             assert ingresso_db.pronto_em is not None
 
-        # Verifica no S3 se o PDF existe
+        # Verifica no Garage S3 se o PDF existe
         s3 = get_s3_client()
         head = s3.head_object(
             Bucket=settings.s3_bucket_tickets, Key=ingresso_db.pdf_key
@@ -432,7 +424,7 @@ async def test_reprocessar_ingresso_failed_sucesso_e_rejeicao_outros_status():
             await session.commit()
 
         # Agora reprocessar deve ter sucesso (202 Accepted)
-        _purgar_fila_sqs()
+        await purgar_filas()
         r_reproc = await client.post(
             f"/ingressos/{ing_id}/reprocessar",
             headers={"Authorization": f"Bearer {token_user}"},
@@ -440,12 +432,10 @@ async def test_reprocessar_ingresso_failed_sucesso_e_rejeicao_outros_status():
         assert r_reproc.status_code == status.HTTP_202_ACCEPTED
         assert r_reproc.json()["status"] == StatusIngresso.PENDING
 
-        # Confirma que a mensagem foi republicada na fila SQS
-        sqs = get_sqs_client()
-        res_sqs = sqs.receive_message(QueueUrl=settings.SQS_QUEUE_URL, WaitTimeSeconds=5)
-        msgs = res_sqs.get("Messages", [])
+        # Confirma que a mensagem foi republicada na fila do RabbitMQ
+        msgs = await _ler_mensagens_fila()
         assert len(msgs) == 1
-        assert extrair_id(msgs[0]["Body"]) == ing_id
+        assert extrair_id(msgs[0]) == ing_id
 
 
 # =========================================================================
@@ -464,7 +454,7 @@ async def test_worker_loop_processa_fila_e_limpa_mensagem():
         )
         evento = await criar_evento_helper(client, token_org)
 
-        # Compra ingresso -> publica no SNS -> entrega no SQS
+        # Compra ingresso -> publica na exchange do RabbitMQ -> entrega na fila
         res_compra = await client.post(
             f"/eventos/{evento['id']}/ingressos",
             headers={"Authorization": f"Bearer {token_user}"},
@@ -481,14 +471,9 @@ async def test_worker_loop_processa_fila_e_limpa_mensagem():
             ingresso = (await session.execute(stmt)).scalar_one()
             assert ingresso.status == StatusIngresso.READY
 
-        # Verifica se a fila SQS está vazia (mensagem foi deletada com sucesso)
-        sqs = get_sqs_client()
-        res_sqs = sqs.receive_message(
-            QueueUrl=settings.SQS_QUEUE_URL,
-            MaxNumberOfMessages=1,
-            WaitTimeSeconds=1,
-        )
-        assert len(res_sqs.get("Messages", [])) == 0
+        # Verifica se a fila do RabbitMQ está vazia (mensagem recebeu ack com sucesso)
+        msgs = await _ler_mensagens_fila()
+        assert len(msgs) == 0
 
 
 @pytest.mark.asyncio
@@ -508,31 +493,25 @@ async def test_worker_max_tentativas_marca_failed():
         )
         ing_id = res_compra.json()["id"]
 
+        # Limpa fila e publica mensagem já na tentativa máxima (ex: 3)
+        await purgar_filas()
+        await publicar_ingresso(ing_id, attempt=settings.RABBITMQ_MAX_RETRIES)
+
         # Simula erro de S3 ou banco durante o processamento
         with patch("worker.__main__.processar", side_effect=Exception("S3 Indisponível")):
-            sqs = get_sqs_client()
-            # Envia mensagem simulando tentativa 3 (limite máximo)
-            # Para testar o comportamento do loop_worker com tentativa 3:
             parar = asyncio.Event()
-
-            # Mockamos receive_message para injetar ApproximateReceiveCount = "3"
-            fake_msg = {
-                "Messages": [
-                    {
-                        "Body": json.dumps({"ingresso_id": ing_id}),
-                        "ReceiptHandle": "fake-handle",
-                        "Attributes": {"ApproximateReceiveCount": "3"},
-                    }
-                ]
-            }
-            with patch.object(sqs, "receive_message", return_value=fake_msg):
-                await loop_worker(parar, max_iterations=1)
+            await loop_worker(parar, max_iterations=1)
 
         # O ingresso deve ter sido marcado como FAILED
         async with TestSessionLocal() as session:
             stmt = select(Ingresso).where(Ingresso.id == ing_id)
             ingresso = (await session.execute(stmt)).scalar_one()
             assert ingresso.status == StatusIngresso.FAILED
+
+        # E a mensagem deve ter sido encaminhada para a DLQ
+        dlq_msgs = await _ler_mensagens_fila(dlq=True)
+        assert len(dlq_msgs) == 1
+        assert extrair_id(dlq_msgs[0]) == ing_id
 
 
 @pytest.mark.asyncio
@@ -560,18 +539,16 @@ async def test_reconciliacao_republica_ingressos_pendentes_antigos():
             )
             await session.commit()
 
-        _purgar_fila_sqs()
+        await purgar_filas()
 
         # Executa ciclo de reconciliação
         reconciliados = await reconciliar_ingressos_orfaos()
         assert reconciliados >= 1
 
-        # Mensagem deve ter sido republicada na fila SQS
-        sqs = get_sqs_client()
-        res_sqs = sqs.receive_message(QueueUrl=settings.SQS_QUEUE_URL, WaitTimeSeconds=5)
-        msgs = res_sqs.get("Messages", [])
+        # Mensagem deve ter sido republicada na fila do RabbitMQ
+        msgs = await _ler_mensagens_fila()
         assert len(msgs) >= 1
-        assert extrair_id(msgs[0]["Body"]) == ing_id
+        assert extrair_id(msgs[0]) == ing_id
 
 
 def boto3_key(name: str):

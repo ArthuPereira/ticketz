@@ -6,6 +6,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from src.auth.router import router as auth_router
+from src.core.action_log import ensure_dynamodb_table
 from src.core.cache import close_redis_client
 from src.core.settings import settings
 from src.evento.router import router as evento_router
@@ -19,6 +20,7 @@ ASSETS_DIR = FRONTEND_DIST_DIR / "assets"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    await ensure_dynamodb_table()
     yield
     await close_redis_client()
 
@@ -44,19 +46,28 @@ app.add_middleware(
 @app.middleware("http")
 async def spa_navigation_middleware(request: Request, call_next):
     """
-    Se a requisição for GET e o cliente for navegador solicitando HTML,
-    retorna o index.html da SPA, exceto para documentação Swagger e rotas reservadas.
-    Requisições de API com Accept: application/json passam direto aos endpoints.
+    Se a requisição for GET e corresponder a um arquivo estático na raiz de frontend/dist
+    (ex: /favicon.svg) ou o cliente for navegador solicitando HTML (Accept: text/html),
+    serve o arquivo estático ou o index.html da SPA, exceto para documentação Swagger e rotas reservadas.
     """
     path = request.url.path
-    if (
-        request.method == "GET"
-        and not path.startswith(("/docs", "/redoc", "/openapi.json", "/assets/", "/health"))
-        and INDEX_HTML.is_file()
-    ):
-        accept = request.headers.get("accept", "")
-        if "text/html" in accept:
-            return FileResponse(INDEX_HTML)
+    if request.method == "GET" and FRONTEND_DIST_DIR.is_dir():
+        rel_path = path.lstrip("/")
+        if rel_path:
+            candidate_file = (FRONTEND_DIST_DIR / rel_path).resolve()
+            if (
+                candidate_file.is_relative_to(FRONTEND_DIST_DIR.resolve())
+                and candidate_file.is_file()
+            ):
+                return FileResponse(candidate_file)
+
+        if (
+            not path.startswith(("/docs", "/redoc", "/openapi.json", "/assets/", "/health"))
+            and INDEX_HTML.is_file()
+        ):
+            accept = request.headers.get("accept", "")
+            if "text/html" in accept:
+                return FileResponse(INDEX_HTML)
 
     return await call_next(request)
 
@@ -80,20 +91,3 @@ async def serve_root(request: Request):
     if INDEX_HTML.is_file() and ("text/html" in accept or "application/json" not in accept):
         return FileResponse(INDEX_HTML)
     return {"status": "ok", "message": "API do Ticketz operante"}
-
-
-@app.get("/{full_path:path}", include_in_schema=False)
-async def serve_static_or_spa(request: Request, full_path: str):
-    """
-    Fallback para rotas da SPA (ex: /login, /meus-ingressos) ou arquivos da raiz do frontend.
-    """
-    candidate_file = FRONTEND_DIST_DIR / full_path
-    if full_path and candidate_file.is_file():
-        return FileResponse(candidate_file)
-
-    if INDEX_HTML.is_file():
-        accept = request.headers.get("accept", "")
-        if "text/html" in accept or "*/*" in accept or not accept:
-            return FileResponse(INDEX_HTML)
-
-    return Response(content='{"detail":"Not Found"}', status_code=404, media_type="application/json")

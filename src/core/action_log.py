@@ -16,6 +16,56 @@ from src.core.settings import settings
 logger = logging.getLogger("ticketz.action_log")
 
 SENSITIVE_KEYS = {"senha", "senha_hash", "password", "token", "secret", "access_token"}
+_table_ensured = False
+
+
+def ensure_dynamodb_table_sync() -> None:
+    """Cria a tabela de auditoria no DynamoDB Local caso ainda não exista."""
+    global _table_ensured
+    if _table_ensured:
+        return
+
+    client = get_dynamodb_client()
+    table_name = settings.DYNAMODB_TABLE
+    try:
+        client.describe_table(TableName=table_name)
+        _table_ensured = True
+        return
+    except ClientError as e:
+        code = e.response.get("Error", {}).get("Code", "")
+        if code != "ResourceNotFoundException":
+            raise
+
+    try:
+        client.create_table(
+            TableName=table_name,
+            KeySchema=[
+                {"AttributeName": "entidade", "KeyType": "HASH"},
+                {"AttributeName": "sk", "KeyType": "RANGE"},
+            ],
+            AttributeDefinitions=[
+                {"AttributeName": "entidade", "AttributeType": "S"},
+                {"AttributeName": "sk", "AttributeType": "S"},
+            ],
+            BillingMode="PAY_PER_REQUEST",
+        )
+        waiter = client.get_waiter("table_exists")
+        waiter.wait(TableName=table_name)
+        _table_ensured = True
+        logger.info("Tabela DynamoDB '%s' provisionada automaticamente.", table_name)
+    except ClientError as e:
+        if e.response.get("Error", {}).get("Code") == "ResourceInUseException":
+            _table_ensured = True
+        else:
+            raise
+
+
+async def ensure_dynamodb_table() -> None:
+    """Versão assíncrona da inicialização da tabela do DynamoDB."""
+    try:
+        await asyncio.to_thread(ensure_dynamodb_table_sync)
+    except Exception as e:
+        logger.warning("Não foi possível garantir a tabela do DynamoDB na subida: %s", e)
 
 
 def sanitize_data(data: Any) -> Any:
@@ -80,7 +130,14 @@ async def registrar_log(
         def _put():
             dynamodb = get_dynamodb_resource()
             table = dynamodb.Table(settings.DYNAMODB_TABLE)
-            table.put_item(Item=item)
+            try:
+                table.put_item(Item=item)
+            except ClientError as err:
+                if err.response.get("Error", {}).get("Code") == "ResourceNotFoundException":
+                    ensure_dynamodb_table_sync()
+                    table.put_item(Item=item)
+                else:
+                    raise
 
         await asyncio.to_thread(_put)
     except Exception as e:
@@ -118,6 +175,7 @@ async def consultar_logs_evento(
             )
 
     def _query():
+        ensure_dynamodb_table_sync()
         dynamodb = get_dynamodb_resource()
         table = dynamodb.Table(settings.DYNAMODB_TABLE)
         return table.query(**query_kwargs)
@@ -151,6 +209,7 @@ async def consultar_logs_evento(
 async def check_dynamodb_ready() -> bool:
     """Verifica se a tabela do DynamoDB está acessível e ativa."""
     def _describe():
+        ensure_dynamodb_table_sync()
         client = get_dynamodb_client()
         res = client.describe_table(TableName=settings.DYNAMODB_TABLE)
         return res.get("Table", {}).get("TableStatus") in ("ACTIVE", "UPDATING")

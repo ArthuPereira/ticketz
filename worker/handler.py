@@ -33,21 +33,21 @@ class ErroPermanente(Exception):
 
 
 def extrair_id(body: str) -> int:
-    """Extrai o ingresso_id da mensagem SQS com suporte a formato direto e envelope SNS (Notification)."""
+    """Extrai o ingresso_id da mensagem JSON do RabbitMQ."""
     try:
         data = json.loads(body)
     except Exception as e:
         raise ErroPermanente(f"Corpo não é um JSON válido: {body}") from e
 
     if isinstance(data, dict):
-        # Suporte ao envelope SNS caso raw_message_delivery esteja desligado
+        # Suporte ao envelope Notification legado
         if data.get("Type") == "Notification" and "Message" in data:
             try:
                 inner = json.loads(data["Message"])
                 if isinstance(inner, dict) and "ingresso_id" in inner:
                     return int(inner["ingresso_id"])
             except Exception as e:
-                raise ErroPermanente(f"Falha ao decodificar envelope SNS: {data['Message']}") from e
+                raise ErroPermanente(f"Falha ao decodificar envelope: {data['Message']}") from e
 
         if "ingresso_id" in data:
             try:

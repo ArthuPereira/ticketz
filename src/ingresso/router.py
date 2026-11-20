@@ -171,7 +171,7 @@ async def reprocessar_ingresso(
     current_user: Annotated[Usuario, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    """Reinicia o fluxo assíncrono para ingressos com status FAILED, alterando para PENDING e republicando no SNS."""
+    """Reinicia o fluxo assíncrono para ingressos com status FAILED, alterando para PENDING e republicando no RabbitMQ."""
     stmt = (
         select(Ingresso)
         .options(joinedload(Ingresso.evento))

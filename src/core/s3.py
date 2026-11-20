@@ -6,7 +6,7 @@ import uuid
 from fastapi import HTTPException, UploadFile, status
 from PIL import Image
 
-from src.core.aws import get_s3_client
+from src.core.aws import get_s3_client, get_s3_public_client
 from src.core.settings import settings
 
 logger = logging.getLogger("ticketz.s3")
@@ -29,11 +29,11 @@ CONTENT_TYPE_MAP = {
 
 
 def gerar_presigned_url(key: Optional[str], expires_in: int = 3600) -> Optional[str]:
-    """Gera uma presigned URL temporária para leitura do objeto no S3."""
+    """Gera uma presigned URL temporária para leitura do objeto no S3/Garage."""
     if not key:
         return None
     try:
-        s3 = get_s3_client()
+        s3 = get_s3_public_client()
         return s3.generate_presigned_url(
             "get_object",
             Params={"Bucket": settings.s3_bucket_banners, "Key": key},
@@ -125,7 +125,7 @@ def gerar_presigned_download_url(
     if not key:
         return None
     try:
-        s3 = get_s3_client()
+        s3 = get_s3_public_client()
         return s3.generate_presigned_url(
             "get_object",
             Params={

@@ -14,6 +14,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
+from src.core.action_log import ensure_dynamodb_table_sync
 from src.core.aws import get_dynamodb_resource, get_s3_client
 from src.core.cache import get_redis_client
 from src.core.database import get_db
@@ -36,6 +37,7 @@ app.dependency_overrides[get_db] = override_get_db
 
 def _limpar_dynamodb():
     try:
+        ensure_dynamodb_table_sync()
         dynamodb = get_dynamodb_resource()
         table = dynamodb.Table(settings.DYNAMODB_TABLE)
         scan = table.scan(ProjectionExpression="entidade, sk")

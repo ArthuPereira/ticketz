@@ -4,12 +4,17 @@ import logging
 import signal
 import sys
 from typing import Optional
+import aio_pika
+from aio_pika import DeliveryMode, Message
 from sqlalchemy import select
 
-from src.core.aws import get_sqs_client
-from src.core.database import AsyncSessionLocal
+from src.core.action_log import ensure_dynamodb_table
 from src.core.models import Ingresso, StatusIngresso
-from src.core.queue import publicar_ingresso
+from src.core.queue import (
+    ROUTING_KEY_PURCHASED,
+    declare_rabbitmq_topology,
+    publicar_ingresso,
+)
 from src.core.settings import settings
 from worker.handler import (
     extrair_id,
@@ -27,7 +32,7 @@ logger = logging.getLogger("ticketz.worker")
 
 
 async def reconciliar_ingressos_orfaos() -> int:
-    """Busca ingressos PENDING com mais de 5 minutos de criação e os republica no SNS."""
+    """Busca ingressos PENDING com mais de 5 minutos de criação e os republica no RabbitMQ."""
     limite_tempo = datetime.now(timezone.utc) - timedelta(minutes=5)
     session_maker = get_worker_session_maker()
     async with session_maker() as session:
@@ -51,7 +56,11 @@ async def reconciliar_ingressos_orfaos() -> int:
             try:
                 await publicar_ingresso(ing_id)
             except Exception as e:
-                logger.warning("Falha ao republicar ingresso #%s na reconciliação: %s", ing_id, e)
+                logger.warning(
+                    "Falha ao republicar ingresso #%s na reconciliação: %s",
+                    ing_id,
+                    e,
+                )
 
     return len(ingressos_orfaos)
 
@@ -71,73 +80,98 @@ async def tarefa_reconciliacao(parar: asyncio.Event) -> None:
             await asyncio.sleep(5)
 
 
-async def loop_worker(parar: asyncio.Event, max_iterations: Optional[int] = None) -> None:
-    """Loop principal do worker com long polling de 20s, processamento sequencial e shutdown limpo."""
-    sqs = get_sqs_client()
-    url = settings.SQS_QUEUE_URL
-    max_tentativas = settings.SQS_MAX_RECEIVE_COUNT
+async def loop_worker(
+    parar: asyncio.Event, max_iterations: Optional[int] = None
+) -> None:
+    """Loop principal do worker consumindo do RabbitMQ com retry controlado e DLQ."""
+    await ensure_dynamodb_table()
+
+    max_tentativas = settings.RABBITMQ_MAX_RETRIES
     iteracoes = 0
 
-    logger.info("Worker Ticketz iniciado. Escutando fila: %s", url)
+    logger.info(
+        "Worker Ticketz iniciado. Escutando fila RabbitMQ: %s",
+        settings.RABBITMQ_QUEUE,
+    )
 
     while not parar.is_set():
         if max_iterations is not None and iteracoes >= max_iterations:
-            logger.info("Limite de iterações atingido (%s). Finalizando loop.", max_iterations)
+            logger.info(
+                "Limite de iterações atingido (%s). Finalizando loop.",
+                max_iterations,
+            )
             break
 
         iteracoes += 1
 
         try:
-            def _receive():
-                return sqs.receive_message(
-                    QueueUrl=url,
-                    MaxNumberOfMessages=5,
-                    WaitTimeSeconds=20,
-                    AttributeNames=["ApproximateReceiveCount"],
-                )
+            connection = await aio_pika.connect_robust(
+                settings.RABBITMQ_URL, timeout=5.0
+            )
+            async with connection:
+                channel = await connection.channel()
+                await channel.set_qos(prefetch_count=5)
+                exchange, queue, _, _ = await declare_rabbitmq_topology(channel)
 
-            resp = await asyncio.to_thread(_receive)
-        except Exception as e:
-            logger.exception("Falha ao receber mensagens da fila SQS: %s. Aguardando 5s...", e)
-            await asyncio.sleep(5)
-            continue
+                mensagens_lidas = 0
+                for _ in range(5):
+                    msg = await queue.get(no_ack=False, fail=False, timeout=1.0)
+                    if msg is None:
+                        break
+                    mensagens_lidas += 1
 
-        mensagens = resp.get("Messages", [])
-        if not mensagens:
-            continue
+                    body = msg.body.decode("utf-8")
+                    headers = msg.headers or {}
+                    tentativa = int(headers.get("x-attempt", 1))
 
-        for msg in mensagens:
-            body = msg.get("Body", "")
-            receipt_handle = msg.get("ReceiptHandle", "")
-            attributes = msg.get("Attributes", {})
-            tentativa = int(attributes.get("ApproximateReceiveCount", 1))
-
-            try:
-                ingresso_id = extrair_id(body)
-                await processar(ingresso_id)
-
-                # Sucesso: apaga a mensagem da fila SQS
-                def _delete():
-                    sqs.delete_message(QueueUrl=url, ReceiptHandle=receipt_handle)
-
-                await asyncio.to_thread(_delete)
-            except Exception as e:
-                logger.exception(
-                    "Falha ao processar mensagem (tentativa %s/%s): %s",
-                    tentativa,
-                    max_tentativas,
-                    e,
-                )
-                if tentativa >= max_tentativas:
-                    id_seguro = extrair_id_seguro(body)
-                    if id_seguro is not None:
-                        await marcar_failed(id_seguro)
-                        logger.warning(
-                            "Ingresso #%s atingiu limite de %s tentativas e foi marcado como FAILED.",
-                            id_seguro,
+                    try:
+                        ingresso_id = extrair_id(body)
+                        await processar(ingresso_id)
+                        await msg.ack()
+                    except Exception as e:
+                        logger.exception(
+                            "Falha ao processar mensagem (tentativa %s/%s): %s",
+                            tentativa,
                             max_tentativas,
+                            e,
                         )
-                # Não apaga: a mensagem reaparecerá após o visibility timeout ou irá para a DLQ
+                        if tentativa >= max_tentativas:
+                            id_seguro = extrair_id_seguro(body)
+                            if id_seguro is not None:
+                                await marcar_failed(id_seguro)
+                                logger.warning(
+                                    "Ingresso #%s atingiu limite de %s tentativas e foi marcado como FAILED.",
+                                    id_seguro,
+                                    max_tentativas,
+                                )
+                            # Envia para a DLQ rejeitando sem requeue
+                            await msg.reject(requeue=False)
+                        else:
+                            # Republica com contador de tentativas incrementado
+                            nova_msg = Message(
+                                body=msg.body,
+                                content_type="application/json",
+                                delivery_mode=DeliveryMode.PERSISTENT,
+                                headers={"x-attempt": tentativa + 1},
+                            )
+                            await exchange.publish(
+                                nova_msg, routing_key=ROUTING_KEY_PURCHASED
+                            )
+                            await msg.ack()
+
+                if mensagens_lidas == 0 and max_iterations is None:
+                    try:
+                        await asyncio.wait_for(parar.wait(), timeout=1.0)
+                    except asyncio.TimeoutError:
+                        pass
+
+        except Exception as e:
+            logger.exception(
+                "Falha ao comunicar com RabbitMQ: %s. Aguardando 5s...", e
+            )
+            if max_iterations is not None:
+                break
+            await asyncio.sleep(5)
 
 
 async def main() -> None:
@@ -145,7 +179,9 @@ async def main() -> None:
     loop = asyncio.get_running_loop()
 
     def _interromper():
-        logger.info("Sinal recebido. Finalizando o processamento da mensagem atual e encerrando...")
+        logger.info(
+            "Sinal recebido. Finalizando o processamento da mensagem atual e encerrando..."
+        )
         parar.set()
 
     for sig in (signal.SIGINT, signal.SIGTERM):
@@ -154,7 +190,6 @@ async def main() -> None:
         except NotImplementedError:
             pass
 
-    # Inicia a reconciliação e o loop principal
     task_reconciliacao = asyncio.create_task(tarefa_reconciliacao(parar))
     task_worker = asyncio.create_task(loop_worker(parar))
 

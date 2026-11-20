@@ -24,7 +24,7 @@ async def comprar_ingresso(
     2. Insere ingresso com ON CONFLICT (evita duplicação do mesmo usuário).
     3. Decrementa estoque atomicamente com UPDATE condicional (evita overbooking).
     4. Confirma transação com commit explícito.
-    5. Notifica SNS, registra action_log e invalida cache."""
+    5. Publica na fila RabbitMQ, registra action_log e invalida cache."""
 
     # 1. SELECT evento (ativo, data)
     stmt_ev = select(Evento).where(Evento.id == evento_id)
@@ -98,7 +98,7 @@ async def comprar_ingresso(
         await publicar_ingresso(ingresso_id)
     except Exception as e:
         logger.error(
-            "Falha ao publicar ingresso %s no SNS (compra mantida): %s",
+            "Falha ao publicar ingresso %s no RabbitMQ (compra mantida): %s",
             ingresso_id,
             e,
         )
